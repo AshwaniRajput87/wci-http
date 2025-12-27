@@ -1,3 +1,9 @@
-export function loggingInterceptor(url: string) {
-  console.log("[HTTP]", url);
-}
+/**
+ * Logging interceptor for HTTP requests.
+ *
+ * Used for lightweight observability during development
+ * and debugging. Logs request URLs before execution.
+ */
+export const loggingInterceptor = (url: string): void => {
+  console.log('[HTTP]', url);
+};

@@ -1,7 +1,15 @@
-import { httpClient } from "../client/httpClient";
+/**
+ * Perform an HTTP POST request.
+ *
+ * Sends JSON payload using the shared httpClient.
+ * Automatically applies `Content-Type: application/json`.
+ */
+import { httpClient } from '../client/httpClient';
 
-export function post(url: string, body: unknown) {
+export const post = (url: string, body: unknown) => {
   return httpClient(url, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
-}
+};

@@ -1,7 +1,33 @@
+/**
+ * Canonical HTTP error keys.
+ *
+ * These keys are INTERNAL and stable.
+ * They represent transport, client, server, and parsing failures.
+ * Consumers must never override or mutate these values.
+ */
 export const HTTP_ERROR_KEYS = {
-  NETWORK_ERROR: "NETWORK_ERROR",
-  TIMEOUT: "TIMEOUT",
-  UNAUTHORIZED: "UNAUTHORIZED",
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT: 'TIMEOUT',
+  ABORTED: 'ABORTED',
+
+  BAD_REQUEST: 'BAD_REQUEST',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  UNPROCESSABLE_ENTITY: 'UNPROCESSABLE_ENTITY',
+  TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
+
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  BAD_GATEWAY: 'BAD_GATEWAY',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  GATEWAY_TIMEOUT: 'GATEWAY_TIMEOUT',
+
+  INVALID_JSON: 'INVALID_JSON',
+  INVALID_RESPONSE: 'INVALID_RESPONSE',
+
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
 } as const;
 
-export type HttpErrorKey = keyof typeof HTTP_ERROR_KEYS;
+export type HttpErrorKey =
+  typeof HTTP_ERROR_KEYS[keyof typeof HTTP_ERROR_KEYS];
