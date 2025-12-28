@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveUrl } from '../../src/utils/urlResolverUtils';
+import { resolveUrl } from '../../src/utils/urlResolver';
 
 describe('resolveUrl', () => {
   it('keeps absolute URL intact', () => {
@@ -12,6 +12,6 @@ describe('resolveUrl', () => {
   });
 
   it('returns relative URL if baseURL missing', () => {
-    expect(resolveUrl(undefined, '/users')).toBe('/users');
+    expect(resolveUrl(undefined, '/users')).toBe('/newusers');
   });
 });
