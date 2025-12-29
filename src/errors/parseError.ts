@@ -17,15 +17,39 @@ export interface ParsedError {
 export const parseError = (error: unknown): ParsedError => {
   if (error instanceof Error) {
     return {
-      message: error.message || 'Unknown error',
+      message: error.message || 'An unexpected error occurred',
       cause: (error as any).cause,
       original: error,
     };
   }
 
-  if (typeof error === 'string') {
-    return { message: error, original: error };
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return {
+      message: error,
+      original: error,
+    };
   }
 
-  return { message: 'Unknown error', original: error };
+  if (typeof error === 'number') {
+    return {
+      message: `Error code: ${error}`,
+      original: error,
+    };
+  }
+
+  if (error !== null && typeof error === 'object') {
+    const errorWithMsg = error as { message?: unknown; cause?: unknown };
+    if (typeof errorWithMsg.message === 'string' && errorWithMsg.message.trim().length > 0) {
+      return {
+        message: errorWithMsg.message,
+        cause: errorWithMsg.cause,
+        original: error,
+      };
+    }
+  }
+
+  return {
+    message: 'Unknown error occurred',
+    original: error,
+  };
 };

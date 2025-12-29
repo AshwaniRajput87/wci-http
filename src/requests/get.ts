@@ -5,7 +5,14 @@
  * Intended for simple GET calls with shared defaults.
  */
 import { httpClient } from '../client/httpClient';
+import type { HttpRequestOptions } from '../types/httpRequestOptionsTypes';
 
-export const get = (url: string) => {
-  return httpClient(url);
-};
+export const get = <T = unknown>(
+  url: string,
+  options: HttpRequestOptions = {}
+): Promise<T> => 
+  httpClient<T>({
+    url,
+    method: 'GET',
+    ...options,
+  });

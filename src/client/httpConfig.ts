@@ -12,4 +12,6 @@ export interface HttpClientConfig {
   credentials?: RequestCredentials;
   params?: Record<string, string | number | boolean>;
   fetcher?: typeof fetch;
+  method?: string;
+  body?: any;
 }
