@@ -12,6 +12,6 @@ describe('resolveUrl', () => {
   });
 
   it('returns relative URL if baseURL missing', () => {
-    expect(resolveUrl(undefined, '/users')).toBe('/newusers');
+    expect(resolveUrl(undefined, '/users')).toBe('/users');
   });
 });
