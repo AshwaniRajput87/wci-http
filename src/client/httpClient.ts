@@ -42,7 +42,8 @@ export const httpClient = async <T = unknown>(
     ...rest,
     method: method.toUpperCase(),
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   return response.json() as Promise<T>;

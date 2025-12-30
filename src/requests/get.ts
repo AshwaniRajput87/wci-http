@@ -4,6 +4,7 @@
  * Thin wrapper over the core httpClient.
  * Intended for simple GET calls with shared defaults.
  */
+// src/requests/get.ts
 import { httpClient } from "../client/httpClient";
 import type { HttpRequestOptions } from "../types/httpRequestOptionsTypes";
 
@@ -12,7 +13,7 @@ export const get = <T = unknown>(
   options: HttpRequestOptions = {},
 ): Promise<T> =>
   httpClient<T>({
-    url,
-    method: "GET",
-    ...options,
+    ...options,    
+    url,           
+    method: "GET", 
   });

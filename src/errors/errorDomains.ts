@@ -9,12 +9,12 @@
  * PREFIX_DOMAIN_KEY
  * Example: WCI_HTTP_TIMEOUT
  */
-export const ERROR_DOMAINS = {
+export const ERROR_DOMAINS = Object.freeze({
   HTTP: "HTTP",
   AUTH: "AUTH",
   DOMAIN: "DOMAIN",
   STORAGE: "STORAGE",
   SYSTEM: "SYSTEM",
-} as const;
+} as const);
 
 export type ErrorDomain = (typeof ERROR_DOMAINS)[keyof typeof ERROR_DOMAINS];

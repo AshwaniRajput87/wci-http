@@ -1,12 +1,10 @@
-/**
- * Perform an HTTP POST request.
- *
- * Sends JSON payload using the shared httpClient.
- * Automatically applies `Content-Type: application/json`.
- */
 import { httpClient } from "../client/httpClient";
 import type { HttpRequestOptions } from "../types/httpRequestOptionsTypes";
+import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 
+/**
+ * Perform an HTTP POST request.
+ */
 export const post = <T = unknown>(
   url: string,
   body?: unknown,
@@ -25,15 +23,15 @@ export const post = <T = unknown>(
 
   if (body !== undefined && !isSpecialBody && !headers["Content-Type"]) {
     headers["Content-Type"] = isUrlEncoded
-      ? "application/x-www-form-urlencoded"
-      : "application/json";
+      ? CONTENT_TYPES.FORM
+      : CONTENT_TYPES.JSON;
   }
 
   return httpClient<T>({
-    url,
-    method: "POST",
-    body,
-    ...options,
-    headers,
+    ...options,     // 1. User options go FIRST
+    url,            // 2. Hardcoded URL goes LATER (wins)
+    method: "POST", // 3. Hardcoded Method goes LATER (wins)
+    body,           // 4. Hardcoded Body goes LATER (wins)
+    headers,        // 5. Hardcoded Headers goes LATER (wins)
   });
 };

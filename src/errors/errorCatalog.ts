@@ -5,7 +5,7 @@
  * They represent transport, client, server, and parsing failures.
  * Consumers must never override or mutate these values.
  */
-export const HTTP_ERROR_KEYS = {
+export const HTTP_ERROR_KEYS = Object.freeze({
   NETWORK_ERROR: "NETWORK_ERROR",
   TIMEOUT: "TIMEOUT",
   ABORTED: "ABORTED",
@@ -27,7 +27,4 @@ export const HTTP_ERROR_KEYS = {
   INVALID_RESPONSE: "INVALID_RESPONSE",
 
   UNKNOWN_ERROR: "UNKNOWN_ERROR",
-} as const;
-
-export type HttpErrorKey =
-  (typeof HTTP_ERROR_KEYS)[keyof typeof HTTP_ERROR_KEYS];
+} as const);
