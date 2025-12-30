@@ -22,31 +22,28 @@
  *
  * This function must remain transport-only and immutable.
  */
-import type { HttpClientConfig } from './httpConfig';
-import { resolveUrl } from '../utils/urlResolverUtils';
+import type { HttpClientConfig } from "./httpConfig";
+import { resolveUrl } from "../utils/urlResolverUtils";
 
 export const httpClient = async <T = unknown>(
-  config: HttpClientConfig & { url: string }
+  config: HttpClientConfig & { url: string },
 ): Promise<T> => {
   const {
     url,
     baseURL,
-    method = 'GET',
+    method = "GET",
     headers,
     body,
     fetcher = fetch,
     ...rest
   } = config;
 
-  const response = await fetcher(
-    resolveUrl(baseURL, url),
-    {
-      ...rest,
-      method: method.toUpperCase(),
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    }
-  );
+  const response = await fetcher(resolveUrl(baseURL, url), {
+    ...rest,
+    method: method.toUpperCase(),
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
 
   return response.json() as Promise<T>;
 };

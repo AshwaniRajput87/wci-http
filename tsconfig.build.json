@@ -6,11 +6,5 @@
     "declarationMap": true
   },
   "include": ["src"],
-  "exclude": [
-    "tests",
-    "**/*.test.ts",
-    "src/demo",
-    "coverage",
-    "node_modules"
-  ]
+  "exclude": ["tests", "**/*.test.ts", "src/demo", "coverage", "node_modules"]
 }

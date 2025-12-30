@@ -10,12 +10,11 @@
  * Example: WCI_HTTP_TIMEOUT
  */
 export const ERROR_DOMAINS = {
-  HTTP: 'HTTP',
-  AUTH: 'AUTH',
-  DOMAIN: 'DOMAIN',
-  STORAGE: 'STORAGE',
-  SYSTEM: 'SYSTEM',
+  HTTP: "HTTP",
+  AUTH: "AUTH",
+  DOMAIN: "DOMAIN",
+  STORAGE: "STORAGE",
+  SYSTEM: "SYSTEM",
 } as const;
 
-export type ErrorDomain =
-  typeof ERROR_DOMAINS[keyof typeof ERROR_DOMAINS];
+export type ErrorDomain = (typeof ERROR_DOMAINS)[keyof typeof ERROR_DOMAINS];

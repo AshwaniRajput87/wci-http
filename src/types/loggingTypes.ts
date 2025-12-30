@@ -1,8 +1,8 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface HttpLogEvent {
   level: LogLevel;
-  category: 'http';
+  category: "http";
   message: string;
   url: string;
   method?: string;

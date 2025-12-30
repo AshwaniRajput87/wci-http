@@ -28,17 +28,15 @@ export class WciHttpError extends Error {
   readonly timeout?: boolean;
 
   constructor(options: WciHttpErrorOptions) {
-
     super(options.message);
 
-    this.name = 'WciHttpError';
+    this.name = "WciHttpError";
     this.code = options.code;
     this.status = options.status;
     this.method = options.method;
     this.url = options.url;
     this.retryable = options.retryable;
     this.timeout = options.timeout;
-
 
     if (options.cause) {
       (this as any).cause = options.cause;

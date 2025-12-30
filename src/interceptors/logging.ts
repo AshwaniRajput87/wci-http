@@ -4,18 +4,18 @@
  * Used for lightweight observability during development
  * and debugging. Logs request URLs before execution.
  */
-import { WciLogger, HttpLogEvent } from '../types/loggingTypes';
+import { WciLogger, HttpLogEvent } from "../types/loggingTypes";
 export const loggingInterceptor = (
   url: string,
   logger?: WciLogger,
-  details?: Partial<HttpLogEvent>
+  details?: Partial<HttpLogEvent>,
 ) => {
   if (!logger) return;
 
   logger.log({
-    level: details?.level || 'info',
-    category: 'http',
-    message: details?.message || 'HTTP Request',
+    level: details?.level || "info",
+    category: "http",
+    message: details?.message || "HTTP Request",
     url,
     method: details?.method,
     status: details?.status,

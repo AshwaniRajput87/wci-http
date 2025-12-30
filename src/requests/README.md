@@ -9,11 +9,13 @@ Each file maps **1:1 with an HTTP method** and exposes a predictable API.
 ## Purpose
 
 These helpers:
+
 - Normalize request shape
 - Enforce HTTP semantics
 - Delegate execution to the core client
 
 They do **not**:
+
 - Contain retry logic
 - Handle auth tokens
 - Parse domain responses
@@ -22,23 +24,24 @@ They do **not**:
 
 ## Available Methods
 
-| File | HTTP Method |
-|----|------------|
-| get.ts | GET |
-| post.ts | POST |
-| put.ts | PUT |
-| patch.ts | PATCH |
-| delete.ts | DELETE |
+| File      | HTTP Method |
+| --------- | ----------- |
+| get.ts    | GET         |
+| post.ts   | POST        |
+| put.ts    | PUT         |
+| patch.ts  | PATCH       |
+| delete.ts | DELETE      |
 
 ---
 
 ## Usage Example
 
 ```ts
-import { get, post } from '@wci/http';
+import { get, post } from "@wci/http";
 
-const users = await get('/users');
+const users = await get("/users");
 
-const created = await post('/users', {
-  name: 'Ayushi',
+const created = await post("/users", {
+  name: "Ayushi",
 });
+```

@@ -17,6 +17,7 @@ No shortcuts. No implicit behavior.
 - Zero framework assumptions
 
 This code must be safe for:
+
 - Node
 - Edge
 - SSR
@@ -31,17 +32,17 @@ Each folder has **exactly one responsibility**.
 
 No cross-contamination is allowed.
 
-| Folder | Responsibility |
-|------|---------------|
-| `client/` | Core HTTP engine |
-| `requests/` | HTTP verb wrappers |
-| `errors/` | Error modeling & codes |
-| `constants/` | Protocol constants |
-| `utils/` | Generic helpers only |
-| `interceptors/` | Lifecycle hooks |
-| `retries/` | Retry & backoff logic |
-| `tests/` | Unit tests (Vitest) |
-| `demo/` | Temporary internal testing |
+| Folder          | Responsibility             |
+| --------------- | -------------------------- |
+| `client/`       | Core HTTP engine           |
+| `requests/`     | HTTP verb wrappers         |
+| `errors/`       | Error modeling & codes     |
+| `constants/`    | Protocol constants         |
+| `utils/`        | Generic helpers only       |
+| `interceptors/` | Lifecycle hooks            |
+| `retries/`      | Retry & backoff logic      |
+| `tests/`        | Unit tests (Vitest)        |
+| `demo/`         | Temporary internal testing |
 
 ---
 
@@ -58,6 +59,7 @@ No cross-contamination is allowed.
 ## Documentation standard
 
 Every file must contain:
+
 - Clear JSDoc
 - Purpose (what it does)
 - Usage intent (how it should be used)
@@ -74,3 +76,4 @@ Example style:
  *
  * This function is pure and side-effect free.
  */
+```
