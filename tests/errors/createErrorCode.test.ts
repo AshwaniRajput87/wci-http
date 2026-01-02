@@ -1,12 +1,11 @@
 import { describe, test, expect } from "vitest";
 import { createErrorCodeFactory } from "../../src/errors/createErrorCode";
 
-
 describe("createErrorCodeFactory", () => {
   const create = createErrorCodeFactory("WCI");
 
   describe("Normalization Logic", () => {
-   test("should transform strings to uppercase and replace spaces with underscores", () => {
+    test("should transform strings to uppercase and replace spaces with underscores", () => {
       const code = create("http", "not found");
       expect(code).toBe("WCI_HTTP_NOT_FOUND");
     });
@@ -17,8 +16,12 @@ describe("createErrorCodeFactory", () => {
     });
 
     test("should throw if domain or key is empty or whitespace", () => {
-      expect(() => create("", "KEY")).toThrow("[WCI] domain must be a non-empty string");
-      expect(() => create("HTTP", "  ")).toThrow("[WCI] key must be a non-empty string");
+      expect(() => create("", "KEY")).toThrow(
+        "[WCI] domain must be a non-empty string",
+      );
+      expect(() => create("HTTP", "  ")).toThrow(
+        "[WCI] key must be a non-empty string",
+      );
     });
   });
 

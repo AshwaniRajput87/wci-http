@@ -23,7 +23,7 @@ describe("post request wrapper", () => {
         headers: expect.objectContaining({
           "Content-Type": CONTENT_TYPES.JSON,
         }),
-      })
+      }),
     );
   });
 
@@ -38,18 +38,18 @@ describe("post request wrapper", () => {
         headers: expect.objectContaining({
           "Content-Type": CONTENT_TYPES.FORM,
         }),
-      })
+      }),
     );
   });
 
   test("should NOT set Content-Type for FormData", async () => {
     const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
-    
+
     // FormData requires the browser to set the boundary in Content-Type
     await post("/upload", new FormData());
 
     const callArgs = spy.mock.calls[0][0];
-    
+
     // Cleanest way to solve ts(18048) and verify the negative case
     expect(callArgs.headers?.["Content-Type"]).toBeUndefined();
   });
@@ -58,16 +58,20 @@ describe("post request wrapper", () => {
     const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
     const customType = "application/vnd.api+json";
 
-    await post("/xml", { data: "test" }, {
-      headers: { "Content-Type": customType }
-    });
+    await post(
+      "/xml",
+      { data: "test" },
+      {
+        headers: { "Content-Type": customType },
+      },
+    );
 
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: expect.objectContaining({
           "Content-Type": customType,
         }),
-      })
+      }),
     );
   });
 
@@ -80,7 +84,7 @@ describe("post request wrapper", () => {
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         method: "POST",
-      })
+      }),
     );
   });
 
@@ -92,10 +96,10 @@ describe("post request wrapper", () => {
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/empty",
-        method: "POST"
-      })
+        method: "POST",
+      }),
     );
-    
+
     const callArgs = spy.mock.calls[0][0];
     expect(callArgs.headers?.["Content-Type"]).toBeUndefined();
   });

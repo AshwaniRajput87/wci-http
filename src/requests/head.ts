@@ -3,7 +3,7 @@ import type { HttpRequestOptions } from "../types/httpRequestOptionsTypes";
 
 export const head = <T = unknown>(
   url: string,
-  options: HttpRequestOptions = {}
+  options: HttpRequestOptions = {},
 ): Promise<T> =>
   httpClient<T>({
     ...options,

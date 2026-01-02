@@ -2,7 +2,7 @@ import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 
 export const resolveBodyAndHeaders = (
   body: unknown,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ) => {
   const isSpecialBody =
     (typeof FormData !== "undefined" && body instanceof FormData) ||

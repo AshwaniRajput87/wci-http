@@ -35,7 +35,7 @@ describe("HTTP_ERROR_KEYS", () => {
   });
 
   test("snapshot match", () => {
-    // Optimization: Using a snapshot ensures that if ANY key changes, 
+    // Optimization: Using a snapshot ensures that if ANY key changes,
     // the test fails. This protects the "Stability" guarantee of your docs.
     expect(HTTP_ERROR_KEYS).toMatchSnapshot();
   });

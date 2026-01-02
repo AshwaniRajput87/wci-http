@@ -59,7 +59,7 @@ describe("WciHttpError", () => {
       timeout: undefined,
       cause: undefined,
     });
-    
+
     // Ensure it can be stringified without circular reference issues
     expect(JSON.stringify(err)).toBe(JSON.stringify(json));
   });
@@ -77,7 +77,7 @@ describe("WciHttpError", () => {
 
   test("should preserve prototype chain (Object.setPrototypeOf check)", () => {
     const err = new WciHttpError({ code: "ERR", message: "msg" });
-    
+
     // This check is crucial for older environments or specific transpilation setups
     expect(Object.getPrototypeOf(err)).toBe(WciHttpError.prototype);
   });

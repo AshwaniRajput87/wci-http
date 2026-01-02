@@ -2,7 +2,6 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import { WciLogger, HttpLogEvent } from "../../src/types/loggingTypes";
 import { loggingInterceptor } from "../../src/interceptors/logging";
 
-
 describe("loggingInterceptor", () => {
   let mockLogger: WciLogger;
 
@@ -14,7 +13,7 @@ describe("loggingInterceptor", () => {
 
   test("should return early if no logger is provided", () => {
     loggingInterceptor("/test", undefined);
-    expect(true).toBe(true); 
+    expect(true).toBe(true);
   });
 
   test("should log the URL and default message when details are missing", () => {
@@ -26,7 +25,7 @@ describe("loggingInterceptor", () => {
         level: "info",
         category: "http",
         message: expect.stringContaining("/api/users"),
-      })
+      }),
     );
   });
 
@@ -40,7 +39,7 @@ describe("loggingInterceptor", () => {
       expect.objectContaining({
         level: "error",
         message: "Custom Error Message",
-      })
+      }),
     );
   });
 
@@ -60,7 +59,7 @@ describe("loggingInterceptor", () => {
       category: "http",
       message: expect.any(String),
       url: "/api/create",
-      ...details
+      ...details,
     });
   });
 
@@ -70,7 +69,7 @@ describe("loggingInterceptor", () => {
     expect(mockLogger.log).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 0,
-      })
+      }),
     );
   });
 });

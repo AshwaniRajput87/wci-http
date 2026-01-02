@@ -3,13 +3,14 @@ import * as client from "../../src/client/httpClient";
 import { get } from "../../src/requests/get";
 
 describe("get request wrapper", () => {
-  
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   test("should call httpClient with GET method and correct URL", async () => {
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue({ success: true });
+    const httpClientSpy = vi
+      .spyOn(client, "httpClient")
+      .mockResolvedValue({ success: true });
 
     const result = await get("/users");
 
@@ -17,7 +18,7 @@ describe("get request wrapper", () => {
       expect.objectContaining({
         url: "/users",
         method: "GET",
-      })
+      }),
     );
     expect(result).toEqual({ success: true });
   });
@@ -39,24 +40,29 @@ describe("get request wrapper", () => {
         headers: config.headers,
         params: config.params,
         timeout: 5000,
-      })
+      }),
     );
   });
 
   test("should respect generic type definitions", async () => {
-    interface User { id: number; name: string }
+    interface User {
+      id: number;
+      name: string;
+    }
     const mockUser: User = { id: 1, name: "John Doe" };
-    
+
     vi.spyOn(client, "httpClient").mockResolvedValue(mockUser);
 
     const result = await get<User>("/user/1");
-    
+
     expect(result.name).toBe("John Doe");
     expect(result.id).toBe(1);
   });
 
   test("should propagate errors from httpClient", async () => {
-    vi.spyOn(client, "httpClient").mockRejectedValue(new Error("Network Failure"));
+    vi.spyOn(client, "httpClient").mockRejectedValue(
+      new Error("Network Failure"),
+    );
 
     await expect(get("/fail")).rejects.toThrow("Network Failure");
   });
@@ -68,8 +74,8 @@ describe("get request wrapper", () => {
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "GET"
-      })
+        method: "GET",
+      }),
     );
   });
 });

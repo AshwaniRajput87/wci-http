@@ -5,7 +5,7 @@ import { resolveBodyAndHeaders } from "../utils/bodyUtils";
 export const patch = <T = unknown>(
   url: string,
   body?: unknown,
-  options: HttpRequestOptions = {}
+  options: HttpRequestOptions = {},
 ): Promise<T> => {
   const headers = resolveBodyAndHeaders(body, { ...options.headers });
 

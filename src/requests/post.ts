@@ -28,10 +28,10 @@ export const post = <T = unknown>(
   }
 
   return httpClient<T>({
-    ...options,     // 1. User options go FIRST
-    url,            // 2. Hardcoded URL goes LATER (wins)
+    ...options, // 1. User options go FIRST
+    url, // 2. Hardcoded URL goes LATER (wins)
     method: "POST", // 3. Hardcoded Method goes LATER (wins)
-    body,           // 4. Hardcoded Body goes LATER (wins)
-    headers,        // 5. Hardcoded Headers goes LATER (wins)
+    body, // 4. Hardcoded Body goes LATER (wins)
+    headers, // 5. Hardcoded Headers goes LATER (wins)
   });
 };

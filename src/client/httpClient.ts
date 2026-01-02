@@ -5,7 +5,7 @@ import { WciHttpError } from "../errors/WciHttpError";
 import { getLogLevelFromStatus } from "../utils/logLevelUtils";
 
 export const httpClient = async <T = unknown>(
-  config: HttpClientConfig & { url: string }
+  config: HttpClientConfig & { url: string },
 ): Promise<T> => {
   const {
     url,

@@ -24,7 +24,7 @@ const demoLogger: WciLogger = {
         status: event.status,
         errorCode: event.errorCode,
         durationMs: event.durationMs,
-      }
+      },
     );
   },
 };
@@ -49,7 +49,7 @@ async function run() {
   await runCase("GET SUCCESS", async () => {
     const res = await get(
       "https://jsonplaceholder.typicode.com/todos/1",
-      options
+      options,
     );
     console.log("Result:", (res as any).title);
   });
@@ -58,7 +58,7 @@ async function run() {
     const res = await post(
       "https://jsonplaceholder.typicode.com/posts",
       { title: "Demo", body: "Post body" },
-      options
+      options,
     );
     console.log("Created ID:", (res as any).id);
   });
@@ -67,7 +67,7 @@ async function run() {
     await put(
       "https://jsonplaceholder.typicode.com/posts/1",
       { title: "Updated title" },
-      options
+      options,
     );
   });
 
@@ -75,29 +75,20 @@ async function run() {
     await patch(
       "https://jsonplaceholder.typicode.com/posts/1",
       { title: "Patched title" },
-      options
+      options,
     );
   });
 
   await runCase("DELETE SUCCESS", async () => {
-    await del(
-      "https://jsonplaceholder.typicode.com/posts/1",
-      options
-    );
+    await del("https://jsonplaceholder.typicode.com/posts/1", options);
   });
 
   await runCase("HEAD SUCCESS", async () => {
-    await head(
-      "https://jsonplaceholder.typicode.com/posts/1",
-      options
-    );
+    await head("https://jsonplaceholder.typicode.com/posts/1", options);
   });
 
   await runCase("OPTIONS SUCCESS", async () => {
-    await optionsReq(
-      "https://jsonplaceholder.typicode.com/posts",
-      options
-    );
+    await optionsReq("https://jsonplaceholder.typicode.com/posts", options);
   });
 
   /* ============================
@@ -105,10 +96,7 @@ async function run() {
      ============================ */
 
   await runCase("GET 404 ERROR", async () => {
-    await get(
-      "https://jsonplaceholder.typicode.com/invalid-endpoint",
-      options
-    );
+    await get("https://jsonplaceholder.typicode.com/invalid-endpoint", options);
   });
 
   /* ============================
@@ -116,10 +104,7 @@ async function run() {
      ============================ */
 
   await runCase("NETWORK ERROR", async () => {
-    await get(
-      "https://this-domain-does-not-exist-12345.com",
-      options
-    );
+    await get("https://this-domain-does-not-exist-12345.com", options);
   });
 
   console.log("\n========== DEMO END ==========\n");
@@ -129,10 +114,7 @@ async function run() {
    CASE RUNNER (SAME STYLE FOR ALL)
 ------------------------------------------------------- */
 
-async function runCase(
-  label: string,
-  fn: () => Promise<void>
-) {
+async function runCase(label: string, fn: () => Promise<void>) {
   console.log(`\n--- ${label} ---`);
 
   try {
@@ -140,11 +122,7 @@ async function runCase(
     console.log(`${label}: COMPLETED`);
   } catch (err) {
     if (err instanceof WciHttpError) {
-      console.error(
-        `${label}: FAILED`,
-        err.code,
-        err.status
-      );
+      console.error(`${label}: FAILED`, err.code, err.status);
     } else {
       console.error(`${label}: UNEXPECTED ERROR`, err);
     }

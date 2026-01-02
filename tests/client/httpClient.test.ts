@@ -8,10 +8,9 @@ import {
 } from "vitest";
 import { httpClient } from "../../src/client/httpClient";
 
-
 vi.mock("../../src/utils/urlResolverUtils", () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>
-    baseURL ? `${baseURL}${url}` : url
+    baseURL ? `${baseURL}${url}` : url,
   ),
 }));
 
@@ -25,7 +24,7 @@ describe("httpClient", () => {
   const createFetchResponse = (data: unknown): Response =>
     ({
       json: vi.fn().mockResolvedValue(data),
-    } as unknown as Response);
+    }) as unknown as Response;
 
   test("uses url directly when baseURL is not provided", async () => {
     mockFetch.mockResolvedValue(createFetchResponse({ success: true }));
@@ -49,7 +48,7 @@ describe("httpClient", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.example.com/users",
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 

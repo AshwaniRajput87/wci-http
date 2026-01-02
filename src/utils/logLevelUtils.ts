@@ -1,5 +1,3 @@
-
-
 import type { LogLevel } from "../types/loggingTypes";
 
 export const getLogLevelFromStatus = (status: number): LogLevel => {

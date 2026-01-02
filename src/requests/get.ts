@@ -13,7 +13,7 @@ export const get = <T = unknown>(
   options: HttpRequestOptions = {},
 ): Promise<T> =>
   httpClient<T>({
-    ...options,    
-    url,           
-    method: "GET", 
+    ...options,
+    url,
+    method: "GET",
   });

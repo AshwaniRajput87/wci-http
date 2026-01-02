@@ -13,7 +13,7 @@ describe("parseError", () => {
   test("should extract the 'cause' property if present in Error object", () => {
     const error = new Error("Request failed") as any;
     error.cause = { status: 500 };
-    
+
     const result = parseError(error);
     expect(result.cause).toEqual({ status: 500 });
   });

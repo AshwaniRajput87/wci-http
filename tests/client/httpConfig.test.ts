@@ -11,7 +11,7 @@ import { resolveUrl } from "../../src/utils/urlResolverUtils";
 
 vi.mock("../../src/utils/urlResolverUtils", () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>
-    baseURL ? `${baseURL}${url}` : url
+    baseURL ? `${baseURL}${url}` : url,
   ),
 }));
 
@@ -27,7 +27,7 @@ describe("httpClient", () => {
     ({
       ok: true,
       json: vi.fn().mockResolvedValue(data),
-    } as unknown as Response);
+    }) as unknown as Response;
 
   test("uses baseURL and resolves final URL", async () => {
     mockFetch.mockResolvedValue(createFetchResponse({}));
@@ -38,10 +38,13 @@ describe("httpClient", () => {
       fetcher: mockFetch,
     });
 
-    expect(resolveUrl).toHaveBeenCalledWith("https://api.example.com", "/users");
+    expect(resolveUrl).toHaveBeenCalledWith(
+      "https://api.example.com",
+      "/users",
+    );
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.example.com/users",
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
