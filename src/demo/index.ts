@@ -1,136 +1,272 @@
+/* -------------------- REQUEST IMPORTS (ESM SAFE) -------------------- */
 import { get } from "../requests/get";
 import { post } from "../requests/post";
 import { put } from "../requests/put";
 import { patch } from "../requests/patch";
 import { del } from "../requests/delete";
-import { head } from "../requests/head";
 import { optionsReq } from "../requests/options";
 
-import { WciLogger, HttpLogEvent } from "../../src/types/loggingTypes";
-import { WciHttpError } from "../../src/errors/WciHttpError";
 
-/* -------------------------------------------------------
-   DEMO LOGGER (VISIBLE OUTPUT)
-------------------------------------------------------- */
+/* -------------------- INTERNAL TYPES / ERRORS (ESM SAFE) -------------------- */
+import { WciLogger, HttpLogEvent } from "../../src/types/loggingTypes.js";
+import { WciHttpError } from "../../src/errors/WciHttpError.js";
 
-const demoLogger: WciLogger = {
-  log: (event: HttpLogEvent) => {
-    console.log(
-      `[${event.level.toUpperCase()}] [${event.category}]`,
-      event.message,
-      {
-        method: event.method,
-        url: event.url,
-        status: event.status,
-        errorCode: event.errorCode,
-        durationMs: event.durationMs,
-      },
-    );
-  },
-};
+/* -------------------- CONSTANTS -------------------- */
 
-/* -------------------------------------------------------
-   COMMON OPTIONS
-------------------------------------------------------- */
+const BASE_URL = "http://127.0.0.1:3000";
+const UNKNOWN_PORT_URL = "http://127.0.0.1:9999";
 
-const options = { logger: demoLogger };
+/* -------------------- LOGGER (UNCHANGED) -------------------- */
 
-/* -------------------------------------------------------
-   DEMO RUN
-------------------------------------------------------- */
-
-async function run() {
-  console.log("\n========== DEMO START ==========\n");
-
-  /* ============================
-     SUCCESS CASES (2xx)
-     ============================ */
-
-  await runCase("GET SUCCESS", async () => {
-    const res = await get(
-      "https://jsonplaceholder.typicode.com/todos/1",
-      options,
-    );
-    console.log("Result:", (res as any).title);
-  });
-
-  await runCase("POST SUCCESS", async () => {
-    const res = await post(
-      "https://jsonplaceholder.typicode.com/posts",
-      { title: "Demo", body: "Post body" },
-      options,
-    );
-    console.log("Created ID:", (res as any).id);
-  });
-
-  await runCase("PUT SUCCESS", async () => {
-    await put(
-      "https://jsonplaceholder.typicode.com/posts/1",
-      { title: "Updated title" },
-      options,
-    );
-  });
-
-  await runCase("PATCH SUCCESS", async () => {
-    await patch(
-      "https://jsonplaceholder.typicode.com/posts/1",
-      { title: "Patched title" },
-      options,
-    );
-  });
-
-  await runCase("DELETE SUCCESS", async () => {
-    await del("https://jsonplaceholder.typicode.com/posts/1", options);
-  });
-
-  await runCase("HEAD SUCCESS", async () => {
-    await head("https://jsonplaceholder.typicode.com/posts/1", options);
-  });
-
-  await runCase("OPTIONS SUCCESS", async () => {
-    await optionsReq("https://jsonplaceholder.typicode.com/posts", options);
-  });
-
-  /* ============================
-     CLIENT ERROR (4xx → warn)
-     ============================ */
-
-  await runCase("GET 404 ERROR", async () => {
-    await get("https://jsonplaceholder.typicode.com/invalid-endpoint", options);
-  });
-
-  /* ============================
-     NETWORK ERROR (error)
-     ============================ */
-
-  await runCase("NETWORK ERROR", async () => {
-    await get("https://this-domain-does-not-exist-12345.com", options);
-  });
-
-  console.log("\n========== DEMO END ==========\n");
+function createDemoLogger(): WciLogger {
+  return {
+    log: (event: HttpLogEvent) => {
+      console.log(
+        `[${event.level.toUpperCase()}] [${event.category}] ${event.message}`,
+        {
+          method: event.method,
+          url: event.url,
+          status: event.status,
+          errorCode: event.errorCode ?? "N/A",
+          durationMs: event.durationMs,
+        }
+      );
+    },
+  };
 }
 
-/* -------------------------------------------------------
-   CASE RUNNER (SAME STYLE FOR ALL)
-------------------------------------------------------- */
+const DEMO_LOGGER = createDemoLogger();
 
-async function runCase(label: string, fn: () => Promise<void>) {
-  console.log(`\n--- ${label} ---`);
+/* -------------------- DEMO OPTIONS -------------------- */
+
+const DEMO_OPTIONS: {
+  logger: WciLogger;
+  headers: Record<string, string>;
+} = {
+  logger: DEMO_LOGGER,
+  headers: {},
+};
+
+/* -------------------- HTTP LOG HELPER -------------------- */
+
+function logHttp(
+  logger: WciLogger,
+  event: Omit<HttpLogEvent, "method" | "url" | "status" | "durationMs"> & {
+    method?: string;
+    url?: string;
+    status?: number;
+    durationMs?: number;
+  }
+) {
+  logger.log({
+    method: event.method ?? "N/A",
+    url: event.url ?? "N/A",
+    status: event.status ?? 0,
+    durationMs: event.durationMs ?? 0,
+    ...event,
+  });
+}
+
+/* -------------------- TYPES -------------------- */
+
+interface DemoUser {
+  _id?: string;
+  name: string;
+  email: string;
+  age: number;
+}
+
+interface DemoCase {
+  label: string;
+  run: (userId?: string) => Promise<string | void>;
+  requiresUserId?: boolean;
+  returnsUserId?: boolean;
+  isErrorCase?: boolean;
+}
+
+/* -------------------- HELPERS -------------------- */
+
+function generateUniqueEmail(): string {
+  return `ayu_${Date.now()}@test.com`;
+}
+
+function createUserPayload(age = 24): DemoUser {
+  return {
+    name: "Ayu",
+    email: generateUniqueEmail(),
+    age,
+  };
+}
+
+/* -------------------- LOGIN (JWT) -------------------- */
+
+async function loginAndGetToken(userId = "demo-user-1"): Promise<string> {
+  const res = await post(
+    `${BASE_URL}/login`,
+    { userId },
+    { logger: DEMO_LOGGER }
+  );
+
+  const token = (res as { token: string }).token;
+
+  if (!token) {
+    throw new Error("JWT token missing from /login response");
+  }
+
+  return token;
+}
+
+/* -------------------- DEMO CASES -------------------- */
+
+const demoCases: DemoCase[] = [
+  {
+    label: "POST USER",
+    returnsUserId: true,
+    run: async () => {
+      const payload = createUserPayload();
+      const res = await post(`${BASE_URL}/users`, payload, DEMO_OPTIONS);
+      return (res as DemoUser)._id!;
+    },
+  },
+  {
+    label: "GET USERS (ME)",
+    run: async () => {
+      await get(`${BASE_URL}/users/me`, DEMO_OPTIONS);
+    },
+  },
+  {
+    label: "PUT USER",
+    requiresUserId: true,
+    run: async (userId) => {
+      await put(
+        `${BASE_URL}/users/${userId}`,
+        {
+          name: "Ayu Updated",
+          email: generateUniqueEmail(),
+          age: 25,
+        },
+        DEMO_OPTIONS
+      );
+    },
+  },
+  {
+    label: "PATCH USER",
+    requiresUserId: true,
+    run: async (userId) => {
+      await patch(
+        `${BASE_URL}/users/${userId}`,
+        { age: 26 },
+        DEMO_OPTIONS
+      );
+    },
+  },
+  {
+    label: "OPTIONS USERS",
+    run: async () => {
+      await optionsReq(`${BASE_URL}/users`, DEMO_OPTIONS);
+    },
+  },
+  {
+    label: "DELETE USER",
+    requiresUserId: true,
+    run: async (userId) => {
+      await del(`${BASE_URL}/users/${userId}`, DEMO_OPTIONS);
+    },
+  },
+  {
+    label: "GET 404 ERROR",
+    isErrorCase: true,
+    run: async () => {
+      await get(`${BASE_URL}/invalid-route`, DEMO_OPTIONS);
+    },
+  },
+  {
+    label: "NETWORK ERROR",
+    isErrorCase: true,
+    run: async () => {
+      await get(UNKNOWN_PORT_URL, DEMO_OPTIONS);
+    },
+  },
+];
+
+/* -------------------- RUNNER -------------------- */
+
+async function runCase(
+  caseDef: DemoCase,
+  userId?: string
+): Promise<string | void> {
+  logHttp(DEMO_LOGGER, {
+    level: "info",
+    category: "http",
+    message: `Starting case: ${caseDef.label}`,
+  });
 
   try {
-    await fn();
-    console.log(`${label}: COMPLETED`);
+    if (caseDef.requiresUserId && !userId) {
+      throw new Error("UserId required but missing");
+    }
+
+    const result = await caseDef.run(userId);
+
+    if (!caseDef.isErrorCase) {
+      logHttp(DEMO_LOGGER, {
+        level: "info",
+        category: "http",
+        message: `Completed case: ${caseDef.label}`,
+      });
+    }
+
+    return result;
   } catch (err) {
     if (err instanceof WciHttpError) {
-      console.error(`${label}: FAILED`, err.code, err.status);
-    } else {
-      console.error(`${label}: UNEXPECTED ERROR`, err);
+      logHttp(DEMO_LOGGER, {
+        level: "error",
+        category: "http",
+        message: `Case failed: ${caseDef.label}`,
+        status: err.status ?? 0,
+        errorCode: err.code,
+      });
     }
+    throw err;
   }
 }
 
-/* -------------------------------------------------------
-   RUN
-------------------------------------------------------- */
+/* -------------------- MAIN -------------------- */
 
-run();
+async function runDemo(): Promise<void> {
+  logHttp(DEMO_LOGGER, {
+    level: "info",
+    category: "http",
+    message: "FASTIFY API DEMO START",
+  });
+
+  const token = await loginAndGetToken("demo-user-1");
+  DEMO_OPTIONS.headers.Authorization = `Bearer ${token}`;
+
+  let userId: string | undefined;
+
+  for (const demoCase of demoCases) {
+    try {
+      const result = await runCase(demoCase, userId);
+      if (demoCase.returnsUserId && result) {
+        userId = result;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  logHttp(DEMO_LOGGER, {
+    level: "info",
+    category: "http",
+    message: "FASTIFY API DEMO END",
+  });
+}
+
+runDemo().catch(() => {
+  logHttp(DEMO_LOGGER, {
+    level: "error",
+    category: "http",
+    message: "Demo terminated with fatal error",
+  });
+});
