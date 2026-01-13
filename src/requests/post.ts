@@ -1,5 +1,5 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/httpRequestOptionsTypes";
+import type { HttpRequestOptions } from "../types/http.types";
 import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 
 /**

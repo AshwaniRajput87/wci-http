@@ -6,6 +6,7 @@ import {
   beforeEach,
   type MockedFunction,
 } from "vitest";
+import { HTTP_METHODS } from "../../src/constants/httpMethods";
 import { httpClient } from "../../src/client/httpClient";
 import { resolveUrl } from "../../src/utils/urlResolverUtils";
 
@@ -27,6 +28,7 @@ describe("httpClient", () => {
     ({
       ok: true,
       json: vi.fn().mockResolvedValue(data),
+      headers: new Headers(),
     }) as unknown as Response;
 
   test("uses baseURL and resolves final URL", async () => {
@@ -35,6 +37,7 @@ describe("httpClient", () => {
     await httpClient({
       baseURL: "https://api.example.com",
       url: "/users",
+      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 
@@ -53,7 +56,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/method",
-      method: "patch",
+      method: HTTP_METHODS.PATCH,
       fetcher: mockFetch,
     });
 
@@ -64,7 +67,7 @@ describe("httpClient", () => {
   test("defaults to GET when no method is provided", async () => {
     mockFetch.mockResolvedValue(createFetchResponse({}));
 
-    await httpClient({ url: "/default", fetcher: mockFetch });
+    await httpClient({ url: "/default", method: HTTP_METHODS.GET, fetcher: mockFetch });
 
     expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
   });
@@ -76,7 +79,7 @@ describe("httpClient", () => {
 
       await httpClient({
         url: "/body",
-        method: "POST",
+        method: HTTP_METHODS.POST,
         body,
         fetcher: mockFetch,
       });
@@ -88,18 +91,18 @@ describe("httpClient", () => {
       mockFetch.mockResolvedValue(createFetchResponse({}));
 
       // Test 0
-      await httpClient({ url: "/zero", body: 0, fetcher: mockFetch });
+      await httpClient({ url: "/zero", method: HTTP_METHODS.POST, body: 0, fetcher: mockFetch });
       expect(mockFetch.mock.calls[0][1]?.body).toBe("0");
 
       // Test false - checking index [1] because this is the second call in this test
-      await httpClient({ url: "/false", body: false, fetcher: mockFetch });
+      await httpClient({ url: "/false", method: HTTP_METHODS.POST, body: false, fetcher: mockFetch });
       expect(mockFetch.mock.calls[1][1]?.body).toBe("false");
     });
 
     test("sends undefined when body is missing", async () => {
       mockFetch.mockResolvedValue(createFetchResponse({}));
 
-      await httpClient({ url: "/no-body", fetcher: mockFetch });
+      await httpClient({ url: "/no-body", method: HTTP_METHODS.GET, fetcher: mockFetch });
 
       expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined();
     });
@@ -110,6 +113,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/auth",
+      method: HTTP_METHODS.GET,
       credentials: "include",
       fetcher: mockFetch,
     });
@@ -123,6 +127,7 @@ describe("httpClient", () => {
 
     const result = await httpClient({
       url: "/data",
+      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 

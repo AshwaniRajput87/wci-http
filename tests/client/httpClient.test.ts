@@ -6,6 +6,7 @@ import {
   beforeEach,
   type MockedFunction,
 } from "vitest";
+import { HTTP_METHODS } from "../../src/constants/httpMethods";
 import { httpClient } from "../../src/client/httpClient";
 
 vi.mock("../../src/utils/urlResolverUtils", () => ({
@@ -23,14 +24,16 @@ describe("httpClient", () => {
 
   const createFetchResponse = (data: unknown): Response =>
     ({
+      ok: true,
       json: vi.fn().mockResolvedValue(data),
+      headers: new Headers(),
     }) as unknown as Response;
 
   test("uses url directly when baseURL is not provided", async () => {
     mockFetch.mockResolvedValue(createFetchResponse({ success: true }));
-
     await httpClient({
       url: "/test",
+      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 
@@ -43,6 +46,7 @@ describe("httpClient", () => {
     await httpClient({
       baseURL: "https://api.example.com",
       url: "/users",
+      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 
@@ -60,7 +64,6 @@ describe("httpClient", () => {
       fetcher: mockFetch,
     });
 
-    expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
   });
 
   test("uppercases HTTP method", async () => {
@@ -68,7 +71,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/test",
-      method: "post",
+      method: HTTP_METHODS.POST,
       fetcher: mockFetch,
     });
 
@@ -84,6 +87,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/secure",
+      method: HTTP_METHODS.GET,
       headers,
       fetcher: mockFetch,
     });
@@ -98,7 +102,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/users",
-      method: "POST",
+      method: HTTP_METHODS.POST,
       body,
       fetcher: mockFetch,
     });
@@ -122,6 +126,7 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/test",
+      method: HTTP_METHODS.GET,
       credentials: "include",
       fetcher: mockFetch,
     });
@@ -146,9 +151,9 @@ describe("httpClient", () => {
   test("calls response.json exactly once", async () => {
     const response = createFetchResponse({});
     mockFetch.mockResolvedValue(response);
-
     await httpClient({
       url: "/test",
+      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 

@@ -1,25 +1,29 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import * as client from "../../src/client/httpClient";
-import { get } from "../../src/requests/get";
+import { patch } from "../../src/requests/patch";
 import { ApiSuccessResponse } from "../../src/types/success.types";
+import { CONTENT_TYPES } from "../../src/constants/protocol/contentTypes";
 
-describe("get request wrapper", () => {
+describe("patch request wrapper", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("should call httpClient with GET method and correct URL", async () => {
+  test("should call httpClient with PATCH method and JSON header", async () => {
     const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi
-      .spyOn(client, "httpClient")
-      .mockResolvedValue(mockApiResponse);
+    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+    const body = { name: "Partial Update" };
 
-    const result = await get("/users");
+    const result = await patch("/items/1", body);
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "/users",
-        method: "GET",
+        url: "/items/1",
+        method: "PATCH",
+        body,
+        headers: expect.objectContaining({
+          "Content-Type": CONTENT_TYPES.JSON,
+        }),
       }),
     );
     expect(result).toEqual(mockApiResponse);
@@ -30,17 +34,18 @@ describe("get request wrapper", () => {
     const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
     const config = {
       headers: { Authorization: "Bearer token" },
-      query: { id: "123" },
+      query: { dryRun: true },
       timeoutMs: 5000,
     };
+    const body = { status: "active" };
 
-    await get("/resource", config);
+    await patch("/resource/1", body, config);
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "/resource",
-        method: "GET",
-        headers: config.headers,
+        url: "/resource/1",
+        method: "PATCH",
+        headers: { ...config.headers, "Content-Type": CONTENT_TYPES.JSON },
         query: config.query,
         timeoutMs: 5000,
       }),
@@ -48,20 +53,20 @@ describe("get request wrapper", () => {
   });
 
   test("should respect generic type definitions and return wrapped data", async () => {
-    interface User {
+    interface Item {
       id: number;
       name: string;
+      status: string;
     }
-    const mockUserData: User = { id: 1, name: "John Doe" };
-    const mockApiResponse: ApiSuccessResponse<User> = { success: true, message: "Fetched", data: mockUserData };
+    const mockItemData: Item = { id: 1, name: "Original", status: "active" };
+    const mockApiResponse: ApiSuccessResponse<Item> = { success: true, message: "Patched", data: mockItemData };
 
     vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse.data);
 
-    const result: User = await get<User>("/user/1");
+    const result: Item = await patch<Item>("/items/1", { status: "active" });
 
-    expect(result).toEqual(mockUserData);
-    expect(result.name).toBe("John Doe");
-    expect(result.id).toBe(1);
+    expect(result).toEqual(mockItemData);
+    expect(result.status).toBe("active");
   });
 
   test("should propagate errors from httpClient", async () => {
@@ -69,18 +74,18 @@ describe("get request wrapper", () => {
       new Error("Network Failure"),
     );
 
-    await expect(get("/fail")).rejects.toThrow("Network Failure");
+    await expect(patch("/fail", {})).rejects.toThrow("Network Failure");
   });
 
-  test("should not allow overriding the GET method", async () => {
+  test("should not allow overriding the PATCH method", async () => {
     const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
     const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
-    // @ts-expect-error - testing that users can't pass 'method' to get()
-    await get("/test", { method: "POST" });
+    // @ts-expect-error - testing that users can't pass 'method' to patch()
+    await patch("/test", {}, { method: "PUT" });
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "GET",
+        method: "PATCH",
       }),
     );
   });

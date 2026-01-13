@@ -5,14 +5,18 @@
  * base URL resolution, headers, and fetch implementation overrides.
  * It intentionally excludes business, domain, and retry concerns.
  */
-import { WciLogger } from "../types/loggingTypes";
+import {
+  HttpHeaders,
+  HttpQuery,
+  WciLogger,
+} from "../types/http.types";
 
 export interface HttpClientConfig {
   baseURL?: string;
-  headers?: Record<string, string>;
+  headers?: HttpHeaders;
   timeout?: number;
   credentials?: RequestCredentials;
-  params?: Record<string, string | number | boolean>;
+  params?: HttpQuery;
   fetcher?: typeof fetch;
   method?: string;
   body?: any;

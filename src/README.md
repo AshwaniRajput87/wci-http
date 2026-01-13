@@ -77,3 +77,30 @@ Example style:
  * This function is pure and side-effect free.
  */
 ```
+
+---
+
+## WCI Naming Law
+
+- **Folders**: plural
+- **Files**: singular
+- **Types**: `*.types.ts`
+- **Interceptors**: `*Interceptor.ts`
+- **Utils**: verb-based (e.g., `mergeHeaders`, `sleep`)
+- **Constants**: nouns only, no logic
+
+---
+
+## Why This Matters (Your Vision Level)
+
+This structure guarantees:
+
+- Tree-shakable
+- Framework-agnostic
+- Qwik / Node / Edge safe
+- Immutable by design
+- DSaaS-ready
+- Zero ambiguity for contributors
+- Long-term API stability
+
+This is infra-grade, not “frontend library” grade.

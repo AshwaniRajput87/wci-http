@@ -6,7 +6,7 @@
  */
 // src/requests/get.ts
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/httpRequestOptionsTypes";
+import type { HttpRequestOptions } from "../types/http.types";
 
 export const get = <T = unknown>(
   url: string,

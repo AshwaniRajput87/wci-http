@@ -1,4 +1,3 @@
-/* -------------------- REQUEST IMPORTS (ESM SAFE) -------------------- */
 import { get } from "../requests/get";
 import { post } from "../requests/post";
 import { put } from "../requests/put";
@@ -6,68 +5,26 @@ import { patch } from "../requests/patch";
 import { del } from "../requests/delete";
 import { optionsReq } from "../requests/options";
 
+import {
+  WciLogger,
+  HttpLogEvent,
+  RequestInterceptor,
+  ResponseInterceptor,
+} from "../../src/types/http.types";
 
-/* -------------------- INTERNAL TYPES / ERRORS (ESM SAFE) -------------------- */
-import { WciLogger, HttpLogEvent } from "../../src/types/loggingTypes.js";
-import { WciHttpError } from "../../src/errors/WciHttpError.js";
+import { CONTENT_TYPES } from "../../src/constants/protocol/contentTypes";
+import { ApiSuccessResponse } from "../../src/types/success.types";
+import { handleSuccess } from "../../src/utils/handleSuccess";
+import { createLoggingInterceptors } from "../../src/interceptors/loggingInterceptor";
 
-/* -------------------- CONSTANTS -------------------- */
 
-const BASE_URL = "http://127.0.0.1:3000";
-const UNKNOWN_PORT_URL = "http://127.0.0.1:9999";
+const CONFIG = {
+  BASE_URL: "http://127.0.0.1:6010",
+  DEFAULT_USER_ID: "demo-user-1",
+  DELAY_MS: 100,
+} as const;
 
-/* -------------------- LOGGER (UNCHANGED) -------------------- */
 
-function createDemoLogger(): WciLogger {
-  return {
-    log: (event: HttpLogEvent) => {
-      console.log(
-        `[${event.level.toUpperCase()}] [${event.category}] ${event.message}`,
-        {
-          method: event.method,
-          url: event.url,
-          status: event.status,
-          errorCode: event.errorCode ?? "N/A",
-          durationMs: event.durationMs,
-        }
-      );
-    },
-  };
-}
-
-const DEMO_LOGGER = createDemoLogger();
-
-/* -------------------- DEMO OPTIONS -------------------- */
-
-const DEMO_OPTIONS: {
-  logger: WciLogger;
-  headers: Record<string, string>;
-} = {
-  logger: DEMO_LOGGER,
-  headers: {},
-};
-
-/* -------------------- HTTP LOG HELPER -------------------- */
-
-function logHttp(
-  logger: WciLogger,
-  event: Omit<HttpLogEvent, "method" | "url" | "status" | "durationMs"> & {
-    method?: string;
-    url?: string;
-    status?: number;
-    durationMs?: number;
-  }
-) {
-  logger.log({
-    method: event.method ?? "N/A",
-    url: event.url ?? "N/A",
-    status: event.status ?? 0,
-    durationMs: event.durationMs ?? 0,
-    ...event,
-  });
-}
-
-/* -------------------- TYPES -------------------- */
 
 interface DemoUser {
   _id?: string;
@@ -76,197 +33,280 @@ interface DemoUser {
   age: number;
 }
 
-interface DemoCase {
-  label: string;
-  run: (userId?: string) => Promise<string | void>;
-  requiresUserId?: boolean;
-  returnsUserId?: boolean;
-  isErrorCase?: boolean;
-}
-
-/* -------------------- HELPERS -------------------- */
-
-function generateUniqueEmail(): string {
-  return `ayu_${Date.now()}@test.com`;
-}
-
-function createUserPayload(age = 24): DemoUser {
-  return {
-    name: "Ayu",
-    email: generateUniqueEmail(),
-    age,
+interface DemoContext {
+  userId?: string;
+  options: {
+    logger: WciLogger;
+    headers: Record<string, string>;
+    timeoutMs?: number;
+    requestInterceptors?: RequestInterceptor[];
+    responseInterceptors?: ResponseInterceptor[];
   };
 }
 
-/* -------------------- LOGIN (JWT) -------------------- */
+type DemoCase = {
+  label: string;
+  requiresUserId?: boolean;
+  expectError?: boolean;
+  run: (ctx: DemoContext) => Promise<unknown>; 
+};
 
-async function loginAndGetToken(userId = "demo-user-1"): Promise<string> {
-  const res = await post(
-    `${BASE_URL}/login`,
-    { userId },
-    { logger: DEMO_LOGGER }
-  );
 
-  const token = (res as { token: string }).token;
+const createDemoLogger = (): WciLogger => ({
+  log: (event: HttpLogEvent) => {
+    const ts = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const lvl = event.level.toUpperCase().padEnd(5);
+    const mtd = (event.method ?? "N/A").padEnd(7);
+    const st = event.status ? String(event.status).padEnd(3) : "N/A";
+    const dur = event.durationMs ? `${event.durationMs}ms` : "";
+    const err = event.errorCode ? `ERROR:${event.errorCode}` : "";
 
-  if (!token) {
-    throw new Error("JWT token missing from /login response");
-  }
-
-  return token;
-}
-
-/* -------------------- DEMO CASES -------------------- */
-
-const demoCases: DemoCase[] = [
-  {
-    label: "POST USER",
-    returnsUserId: true,
-    run: async () => {
-      const payload = createUserPayload();
-      const res = await post(`${BASE_URL}/users`, payload, DEMO_OPTIONS);
-      return (res as DemoUser)._id!;
-    },
+    console.log(
+      `${ts} || ${lvl} || ${mtd} || ${st} || ${event.url ?? "N/A"} || ${dur} || ${err} || ${event.message}`,
+    );
   },
-  {
-    label: "GET USERS (ME)",
-    run: async () => {
-      await get(`${BASE_URL}/users/me`, DEMO_OPTIONS);
-    },
-  },
-  {
-    label: "PUT USER",
-    requiresUserId: true,
-    run: async (userId) => {
-      await put(
-        `${BASE_URL}/users/${userId}`,
-        {
-          name: "Ayu Updated",
-          email: generateUniqueEmail(),
-          age: 25,
-        },
-        DEMO_OPTIONS
-      );
-    },
-  },
-  {
-    label: "PATCH USER",
-    requiresUserId: true,
-    run: async (userId) => {
-      await patch(
-        `${BASE_URL}/users/${userId}`,
-        { age: 26 },
-        DEMO_OPTIONS
-      );
-    },
-  },
-  {
-    label: "OPTIONS USERS",
-    run: async () => {
-      await optionsReq(`${BASE_URL}/users`, DEMO_OPTIONS);
-    },
-  },
-  {
-    label: "DELETE USER",
-    requiresUserId: true,
-    run: async (userId) => {
-      await del(`${BASE_URL}/users/${userId}`, DEMO_OPTIONS);
-    },
-  },
-  {
-    label: "GET 404 ERROR",
-    isErrorCase: true,
-    run: async () => {
-      await get(`${BASE_URL}/invalid-route`, DEMO_OPTIONS);
-    },
-  },
-  {
-    label: "NETWORK ERROR",
-    isErrorCase: true,
-    run: async () => {
-      await get(UNKNOWN_PORT_URL, DEMO_OPTIONS);
-    },
-  },
-];
-
-/* -------------------- RUNNER -------------------- */
-
-async function runCase(
-  caseDef: DemoCase,
-  userId?: string
-): Promise<string | void> {
-  logHttp(DEMO_LOGGER, {
-    level: "info",
-    category: "http",
-    message: `Starting case: ${caseDef.label}`,
-  });
-
-  try {
-    if (caseDef.requiresUserId && !userId) {
-      throw new Error("UserId required but missing");
-    }
-
-    const result = await caseDef.run(userId);
-
-    if (!caseDef.isErrorCase) {
-      logHttp(DEMO_LOGGER, {
-        level: "info",
-        category: "http",
-        message: `Completed case: ${caseDef.label}`,
-      });
-    }
-
-    return result;
-  } catch (err) {
-    if (err instanceof WciHttpError) {
-      logHttp(DEMO_LOGGER, {
-        level: "error",
-        category: "http",
-        message: `Case failed: ${caseDef.label}`,
-        status: err.status ?? 0,
-        errorCode: err.code,
-      });
-    }
-    throw err;
-  }
-}
-
-/* -------------------- MAIN -------------------- */
-
-async function runDemo(): Promise<void> {
-  logHttp(DEMO_LOGGER, {
-    level: "info",
-    category: "http",
-    message: "FASTIFY API DEMO START",
-  });
-
-  const token = await loginAndGetToken("demo-user-1");
-  DEMO_OPTIONS.headers.Authorization = `Bearer ${token}`;
-
-  let userId: string | undefined;
-
-  for (const demoCase of demoCases) {
-    try {
-      const result = await runCase(demoCase, userId);
-      if (demoCase.returnsUserId && result) {
-        userId = result;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  logHttp(DEMO_LOGGER, {
-    level: "info",
-    category: "http",
-    message: "FASTIFY API DEMO END",
-  });
-}
-
-runDemo().catch(() => {
-  logHttp(DEMO_LOGGER, {
-    level: "error",
-    category: "http",
-    message: "Demo terminated with fatal error",
-  });
+  error: console.error,
+  warn: console.warn,
+  info: console.info,
+  debug: console.debug,
+  trace: console.trace,
 });
+
+
+
+const generateEmail = (prefix: string): string =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}@test.com`;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+class LoggedHttpClient {
+  private readonly logger: WciLogger;
+  private readonly requestInterceptors: RequestInterceptor[];
+  private readonly responseInterceptors: ResponseInterceptor[];
+
+  constructor(logger: WciLogger) {
+    this.logger = logger;
+    const { requestInterceptor, responseInterceptor } =
+      createLoggingInterceptors(logger);
+    this.requestInterceptors = [requestInterceptor];
+    this.responseInterceptors = [responseInterceptor];
+  }
+
+  private async exec<T>(
+    fn: () => Promise<any>,
+    expectedStatus: number,
+  ): Promise<ApiSuccessResponse<T>> {
+    const response = await fn();
+    return handleSuccess<T>(response, expectedStatus);
+  }
+
+  get<T>(url: string, options: any) {
+    return this.exec<T>(
+      () =>
+        get(url, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      200,
+    );
+  }
+
+  post<T>(url: string, data: unknown, options: any) {
+    return this.exec<T>(
+      () =>
+        post(url, data, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      201,
+    );
+  }
+
+  put<T>(url: string, data: unknown, options: any) {
+    return this.exec<T>(
+      () =>
+        put(url, data, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      200,
+    );
+  }
+
+  patch<T>(url: string, data: unknown, options: any) {
+    return this.exec<T>(
+      () =>
+        patch(url, data, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      200,
+    );
+  }
+
+  delete<T>(url: string, options: any) {
+    return this.exec<T>(
+      () =>
+        del(url, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      200,
+    );
+  }
+
+  options<T>(url: string, options: any) {
+    return this.exec<T>(
+      () =>
+        optionsReq(url, {
+          ...options,
+          logger: this.logger,
+          requestInterceptors: this.requestInterceptors,
+          responseInterceptors: this.responseInterceptors,
+        }),
+      200,
+    );
+  }
+}
+
+
+class FastifyApiDemo {
+  private readonly logger = createDemoLogger();
+  private readonly client = new LoggedHttpClient(this.logger);
+
+  private readonly ctx: DemoContext = {
+    options: {
+      logger: this.logger,
+      headers: {
+        "Content-Type": CONTENT_TYPES.JSON,
+        Accept: CONTENT_TYPES.JSON,
+      },
+    },
+  };
+
+  private log(level: "info" | "warn" | "error", msg: string) {
+    console.log(
+      `${new Date().toISOString().replace("T", " ").slice(0, 19)} ${level
+        .toUpperCase()
+        .padEnd(5)} DEMO  ${msg}`,
+    );
+  }
+
+  private async authenticate() {
+    this.log("info", "Authenticating user");
+    const res = await this.client.post<{ token: string }>(
+      `${CONFIG.BASE_URL}/login`,
+      { userId: CONFIG.DEFAULT_USER_ID },
+      { headers: {} },
+    );
+    this.ctx.options.headers.Authorization = `Bearer ${res.data.token}`;
+    this.log("info", "Authentication successful");
+  }
+
+  private cases(): DemoCase[] {
+    return [
+      {
+        label: "POST /users",
+        run: async (c) => {
+          const res = await this.client.post<DemoUser>(
+            `${CONFIG.BASE_URL}/users`,
+            { name: "Ayu", email: generateEmail("ayu"), age: 24 },
+            c.options,
+          );
+          c.userId = res.data._id;
+        },
+      },
+      {
+        label: "GET /users/me",
+        run: (c) =>
+          this.client.get(`${CONFIG.BASE_URL}/users/me`, c.options),
+      },
+      {
+        label: "PUT /users/:id",
+        requiresUserId: true,
+        run: (c) =>
+          this.client.put(
+            `${CONFIG.BASE_URL}/users/${c.userId}`,
+            { name: "Ayu Updated", email: generateEmail("updated"), age: 25 },
+            c.options,
+          ),
+      },
+      {
+        label: "PATCH /users/:id",
+        requiresUserId: true,
+        expectError: true,
+        run: (c) =>
+          this.client.patch(
+            `${CONFIG.BASE_URL}/users/${c.userId}`,
+            { age: 26 },
+            c.options,
+          ),
+      },
+      {
+        label: "OPTIONS /users",
+        expectError: true,
+        run: (c) =>
+          this.client.options(`${CONFIG.BASE_URL}/users`, c.options),
+      },
+      {
+        label: "DELETE /users/:id",
+        requiresUserId: true,
+        run: (c) =>
+          this.client.delete(
+            `${CONFIG.BASE_URL}/users/${c.userId}`,
+            {
+              headers: {
+                Authorization: c.options.headers.Authorization!,
+              },
+            },
+          ),
+      },
+      {
+        label: "GET /invalid-route",
+        expectError: true,
+        run: (c) =>
+          this.client.get(`${CONFIG.BASE_URL}/invalid-route`, c.options),
+      },
+    ];
+  }
+
+  async start() {
+    this.log("info", "Fastify API Demo starting");
+    await this.authenticate();
+
+    for (const t of this.cases()) {
+      this.log("info", `Starting test case: ${t.label}`);
+      try {
+        if (t.requiresUserId && !this.ctx.userId) continue;
+        await t.run(this.ctx);
+        this.log("info", `Completed test case: ${t.label}`);
+      } catch {
+        if (t.expectError) {
+          this.log("info", `Expected error handled in case: ${t.label}`);
+        } else {
+          throw new Error(`Unexpected failure in case: ${t.label}`);
+        }
+      }
+      await sleep(CONFIG.DELAY_MS);
+    }
+
+    this.log("info", "Fastify API Demo completed successfully");
+  }
+}
+
+new FastifyApiDemo().start().catch((e) => {
+  console.error("Unhandled demo error:", e);
+  process.exit(1);
+});
+
+export { FastifyApiDemo, type DemoUser, type DemoContext };

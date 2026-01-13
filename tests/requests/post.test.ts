@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import * as client from "../../src/client/httpClient";
 import { post } from "../../src/requests/post";
 import { CONTENT_TYPES } from "../../src/constants/protocol/contentTypes";
+import { ApiSuccessResponse } from "../../src/types/success.types";
 
 describe("post request wrapper", () => {
   beforeEach(() => {
@@ -10,10 +11,11 @@ describe("post request wrapper", () => {
   });
 
   test("should call httpClient with POST method and JSON header", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
     const body = { id: 1 };
 
-    await post("/test", body);
+    const result = await post("/test", body);
 
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -25,13 +27,15 @@ describe("post request wrapper", () => {
         }),
       }),
     );
+    expect(result).toEqual(mockApiResponse);
   });
 
   test("should use form-urlencoded header for URLSearchParams", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
     const params = new URLSearchParams({ foo: "bar" });
 
-    await post("/form", params);
+    const result = await post("/form", params);
 
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -40,10 +44,12 @@ describe("post request wrapper", () => {
         }),
       }),
     );
+    expect(result).toEqual(mockApiResponse);
   });
 
   test("should NOT set Content-Type for FormData", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
 
     // FormData requires the browser to set the boundary in Content-Type
     await post("/upload", new FormData());
@@ -55,10 +61,11 @@ describe("post request wrapper", () => {
   });
 
   test("should prioritize user-provided Content-Type", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
     const customType = "application/vnd.api+json";
 
-    await post(
+    const result = await post(
       "/xml",
       { data: "test" },
       {
@@ -73,25 +80,29 @@ describe("post request wrapper", () => {
         }),
       }),
     );
+    expect(result).toEqual(mockApiResponse);
   });
 
   test("should enforce POST method even if options try to override it", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
 
     // This specifically tests the property order in your implementation
-    await post("/force", {}, { method: "GET" } as any);
+    const result = await post("/force", {}, { method: "GET" } as any);
 
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         method: "POST",
       }),
     );
+    expect(result).toEqual(mockApiResponse);
   });
 
   test("should handle empty/undefined body without crashing", async () => {
-    const spy = vi.spyOn(client, "httpClient").mockResolvedValue("ok" as any);
+    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
+    const spy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
 
-    await post("/empty");
+    const result = await post("/empty");
 
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -102,5 +113,22 @@ describe("post request wrapper", () => {
 
     const callArgs = spy.mock.calls[0][0];
     expect(callArgs.headers?.["Content-Type"]).toBeUndefined();
+    expect(result).toEqual(mockApiResponse);
+  });
+
+  test("should respect generic type definitions and return wrapped data", async () => {
+    interface Item {
+      id: number;
+      value: string;
+    }
+    const mockItemData: Item = { id: 10, value: "Posted Item" };
+    const mockApiResponse: ApiSuccessResponse<Item> = { success: true, message: "Created", data: mockItemData };
+
+    vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse.data);
+
+    const result: Item = await post<Item>("/items", { name: "new item" });
+
+    expect(result).toEqual(mockItemData);
+    expect(result.value).toBe("Posted Item");
   });
 });
