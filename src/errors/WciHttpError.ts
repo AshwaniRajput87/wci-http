@@ -19,6 +19,9 @@ export interface WciHttpErrorOptions {
   timeout?: boolean;
 }
 
+/**
+ * Strongly typed HTTP error with metadata.
+ */
 export class WciHttpError extends Error {
   readonly code: string;
   readonly status?: number;
@@ -26,34 +29,34 @@ export class WciHttpError extends Error {
   readonly url?: string;
   readonly retryable?: boolean;
   readonly timeout?: boolean;
+  readonly cause?: unknown;
 
   constructor(options: WciHttpErrorOptions) {
     super(options.message);
 
-    this.name = "WciHttpError";
+    this.name = 'WciHttpError';
     this.code = options.code;
     this.status = options.status;
     this.method = options.method;
     this.url = options.url;
     this.retryable = options.retryable;
     this.timeout = options.timeout;
-
-    if (options.cause) {
-      (this as any).cause = options.cause;
-    }
+    this.cause = options.cause;
 
     Object.setPrototypeOf(this, WciHttpError.prototype);
   }
 
-  toJSON = () => ({
-    name: this.name,
-    code: this.code,
-    message: this.message,
-    status: this.status,
-    method: this.method,
-    url: this.url,
-    retryable: this.retryable,
-    timeout: this.timeout,
-    cause: (this as any).cause,
-  });
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      status: this.status,
+      method: this.method,
+      url: this.url,
+      retryable: this.retryable,
+      timeout: this.timeout,
+      cause: this.cause,
+    };
+  }
 }

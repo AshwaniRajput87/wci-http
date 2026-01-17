@@ -3,6 +3,7 @@ import type { HttpMethod, HttpRequest } from "../types/http.types";
 
 import { resolveUrl } from "../utils/urlResolverUtils";
 import { sleep } from "../utils/sleepUtils";
+import { serializeRequestBody } from "../utils/bodySerializerzUtils";
 
 import { WciHttpError } from "../errors/WciHttpError";
 import { createHttpErrorCodes } from "../errors/httpErrorCodes";
@@ -25,19 +26,26 @@ export const httpClient = async <T = unknown>(
   config: HttpRequest,
 ): Promise<T> => {
   const {
-    method = HTTP_METHODS.GET,
     retry = false,
     maxRetries = 3,
     retryDelayMs = 1000,
   } = config;
 
   const finalUrl = resolveUrl(config.baseURL, config.url);
-  const initialRequest: HttpRequest = { ...config, url: finalUrl };
+
+  const initialRequest: HttpRequest = { 
+    ...config,
+    url: finalUrl,
+    headers: config.headers ?? {}, // ✅ ALWAYS INIT HEADERS
+  };
 
   let lastError: WciHttpError | undefined;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    let request: HttpRequest = { ...initialRequest };
+    let request: HttpRequest = {
+      ...initialRequest,
+      headers: { ...initialRequest.headers }, // ✅ CLONE HEADERS PER RETRY
+    };
 
     try {
       /* ---------------------------------------
@@ -54,15 +62,14 @@ export const httpClient = async <T = unknown>(
       );
 
       /* ---------------------------------------
-         3️⃣ Body processing
+         3️⃣ Body serialization (SAFE MERGE)
       --------------------------------------- */
-      const processedBody =
-        request.body !== undefined &&
-        typeof request.body !== "string" &&
-        !(request.body instanceof FormData) &&
-        !(request.body instanceof Blob)
-          ? JSON.stringify(request.body)
-          : request.body;
+      const serialized = serializeRequestBody(request);
+
+      const finalHeaders = {
+        ...request.headers,
+        ...serialized.headers, // ✅ DO NOT OVERRIDE AUTH
+      };
 
       /* ---------------------------------------
          4️⃣ Execute fetch
@@ -71,9 +78,10 @@ export const httpClient = async <T = unknown>(
         request.fetcher ?? fetch,
         {
           ...request,
-          method: (method || HTTP_METHODS.GET).toUpperCase() as HttpMethod,
+          headers: finalHeaders,
+          method: (request.method ?? HTTP_METHODS.GET).toUpperCase() as HttpMethod,
         },
-        processedBody,
+        serialized.body,
         signal,
       );
 
@@ -123,7 +131,7 @@ export const httpClient = async <T = unknown>(
       ) {
         generatedError = new WciHttpError({
           code: httpErrorCodes.TIMEOUT,
-          message: `Request timed out`,
+          message: "Request timed out",
           url: request.url,
           method: request.method,
           timeout: true,
@@ -165,7 +173,7 @@ export const httpClient = async <T = unknown>(
       code: httpErrorCodes.UNKNOWN_ERROR,
       message: "Unknown error after retries",
       url: finalUrl,
-      method,
+      method: config.method,
     })
   );
 };
