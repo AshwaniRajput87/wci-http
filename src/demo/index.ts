@@ -37,7 +37,7 @@ interface DemoContext {
 }
 
 /* ---------------------------------------
-   VERY DETAILED LOGGER
+   LOGGER
 --------------------------------------- */
 const createDemoLogger = (): WciLogger => ({
   log: (event: HttpLogEvent) => {
@@ -67,31 +67,45 @@ ERROR     : ${event.errorCode ?? "-"}
    Utils
 --------------------------------------- */
 const generateEmail = (prefix: string) =>
-  `${prefix}_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2)}@test.com`;
+  `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}@test.com`;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------------------------------------
-   AUTH INTERCEPTOR (SAFE)
+   AUTH INTERCEPTOR
 --------------------------------------- */
 const createAuthInterceptor = (
   getToken: () => string | undefined,
-): RequestInterceptor => {
-  return async (request) => {
-    const token = getToken();
-    if (!token) return request;
+): RequestInterceptor => async (request) => {
+  const token = getToken();
+  if (!token) return request;
 
-    return {
-      ...request,
-      headers: {
-        ...(request.headers ?? {}), // ⭐ CRITICAL FIX
-        Authorization: `Bearer ${token}`,
-      },
-    };
+  return {
+    ...request,
+    headers: {
+      ...(request.headers ?? {}),
+      Authorization: `Bearer ${token}`,
+    },
   };
 };
+
+/* ---------------------------------------
+   MOCK FETCHERS (CLIENT-SIDE)
+--------------------------------------- */
+
+// 🔁 Retry mock: fails twice, succeeds on 3rd attempt
+let retryAttempt = 0;
+const retryMockFetcher = async (): Promise<Response> => {
+  retryAttempt++;
+  if (retryAttempt < 3) {
+    throw new TypeError("NetworkError");
+  }
+  return new Response(JSON.stringify({ success: true }), { status: 200 });
+};
+
+// ⏱ Timeout mock: never resolves → AbortController will fire
+const timeoutMockFetcher = () =>
+  new Promise<Response>(() => {});
 
 /* ---------------------------------------
    Demo Runner
@@ -101,33 +115,26 @@ class FastifyApiDemo {
   private readonly ctx: DemoContext;
 
   constructor() {
-    // 1️⃣ Initialize context FIRST
     this.ctx = {
       token: undefined,
       requestInterceptors: [],
       responseInterceptors: [],
     };
 
-    // 2️⃣ Create interceptors AFTER ctx exists
     const authInterceptor = createAuthInterceptor(() => this.ctx.token);
     const { requestInterceptor, responseInterceptor } =
       createLoggingInterceptors(this.logger);
 
-    // 3️⃣ Register interceptors (order matters)
     this.ctx.requestInterceptors = [
-      authInterceptor,     // adds Authorization
-      requestInterceptor,  // logs final request
+      authInterceptor,
+      requestInterceptor,
     ];
-
     this.ctx.responseInterceptors = [responseInterceptor];
   }
 
   private log(msg: string) {
     console.log(
-      `\n${new Date()
-        .toISOString()
-        .replace("T", " ")
-        .slice(0, 19)} DEMO → ${msg}`,
+      `\n${new Date().toISOString().replace("T", " ").slice(0, 19)} DEMO → ${msg}`,
     );
   }
 
@@ -142,15 +149,57 @@ class FastifyApiDemo {
       baseURL: CONFIG.BASE_URL,
       url: "/login",
       body: { userId: CONFIG.DEFAULT_USER_ID },
-      headers: {
-        "Content-Type": CONTENT_TYPES.JSON,
-      },
+      headers: { "Content-Type": CONTENT_TYPES.JSON },
       requestInterceptors: this.ctx.requestInterceptors,
       responseInterceptors: this.ctx.responseInterceptors,
     });
 
     this.ctx.token = res.token;
     this.log("Authentication successful");
+  }
+
+  /* ---------------------------------------
+     Retry Demo (Mocked)
+  --------------------------------------- */
+  private async retryDemo() {
+    this.log("Retry demo starting (client-side mock)");
+
+    const res = await httpClient({
+      method: "GET",
+      url: "/retry-mock",
+      baseURL: CONFIG.BASE_URL,
+      retry: true,
+      maxRetries: 3,
+      retryDelayMs: 300,
+      fetcher: retryMockFetcher,
+      headers: {},
+      requestInterceptors: this.ctx.requestInterceptors,
+      responseInterceptors: this.ctx.responseInterceptors,
+    });
+
+    this.log(`Retry demo succeeded: ${JSON.stringify(res)}`);
+  }
+
+  /* ---------------------------------------
+     Timeout / Abort Demo (Mocked)
+  --------------------------------------- */
+  private async timeoutDemo() {
+    this.log("Timeout demo starting (AbortController)");
+
+    try {
+      await httpClient({
+        method: "GET",
+        url: "/timeout-mock",
+        baseURL: CONFIG.BASE_URL,
+        timeoutMs: 100,
+        fetcher: timeoutMockFetcher,
+        headers: {},
+        requestInterceptors: this.ctx.requestInterceptors,
+        responseInterceptors: this.ctx.responseInterceptors,
+      });
+    } catch {
+      this.log("Timeout demo completed (request aborted)");
+    }
   }
 
   /* ---------------------------------------
@@ -189,7 +238,7 @@ class FastifyApiDemo {
       method: "GET",
       baseURL: CONFIG.BASE_URL,
       url: "/users/me",
-      headers: {}, // ⭐ REQUIRED so Authorization is attached
+      headers: {},
       requestInterceptors: this.ctx.requestInterceptors,
       responseInterceptors: this.ctx.responseInterceptors,
     });
@@ -207,9 +256,7 @@ class FastifyApiDemo {
         email: generateEmail("updated"),
         age: 25,
       },
-      headers: {
-        "Content-Type": CONTENT_TYPES.JSON,
-      },
+      headers: { "Content-Type": CONTENT_TYPES.JSON },
       requestInterceptors: this.ctx.requestInterceptors,
       responseInterceptors: this.ctx.responseInterceptors,
     });
@@ -222,12 +269,20 @@ class FastifyApiDemo {
       method: "DELETE",
       baseURL: CONFIG.BASE_URL,
       url: `/users/${this.ctx.userId}`,
-      headers: {}, // ⭐ REQUIRED
+      headers: {},
       requestInterceptors: this.ctx.requestInterceptors,
       responseInterceptors: this.ctx.responseInterceptors,
     });
 
     this.log("User deleted");
+    await sleep(CONFIG.DELAY_MS);
+
+    /* ---------- EXTRA FEATURE DEMOS ---------- */
+    await this.retryDemo();
+    await sleep(CONFIG.DELAY_MS);
+
+    await this.timeoutDemo();
+
     this.log("Fastify API demo completed successfully");
   }
 }
