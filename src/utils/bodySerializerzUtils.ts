@@ -7,15 +7,6 @@ export interface SerializedBodyResult {
   headers?: Record<string, string>;
 }
 
-import type { HttpRequest } from "../types/http.types";
-import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
-import { findHeader } from "./mergeHeadersUtils";
-
-export interface SerializedBodyResult {
-  body?: BodyInit;
-  headers?: Record<string, string>;
-}
-
 export const serializeRequestBody = (
   request: HttpRequest,
 ): SerializedBodyResult => {

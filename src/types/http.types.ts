@@ -66,6 +66,7 @@ export interface HttpRequest {
 export type HttpRequestOptions =
   Omit<HttpRequest, "url" | "method" | "body">;
 
+
 export interface HttpClientConfig {
   baseURL?: string;
   headers?: HttpHeaders;
@@ -77,8 +78,6 @@ export interface HttpClientConfig {
   body?: any;
   logger?: WciLogger;
 }
-
-
 
 export type HttpResponse<T> = {
   data: T;

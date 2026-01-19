@@ -36,7 +36,7 @@ export const httpClient = async <T = unknown>(
   const initialRequest: HttpRequest = { 
     ...config,
     url: finalUrl,
-    headers: config.headers ?? {}, // ✅ ALWAYS INIT HEADERS
+    headers: config.headers ?? {}, // INIT HEADERS
   };
 
   let lastError: WciHttpError | undefined;

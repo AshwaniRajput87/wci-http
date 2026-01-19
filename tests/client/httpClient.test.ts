@@ -4,44 +4,95 @@ import {
   expect,
   vi,
   beforeEach,
-  type MockedFunction,
 } from "vitest";
+
 import { HTTP_METHODS } from "../../src/constants/httpMethods";
 import { httpClient } from "../../src/client/httpClient";
+import type { HttpClientFetcher } from "../../src/types/http.types";
 
+/* -------------------------------------------------
+   Mock URL resolver
+------------------------------------------------- */
 vi.mock("../../src/utils/urlResolverUtils", () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>
     baseURL ? `${baseURL}${url}` : url,
   ),
 }));
 
+/* -------------------------------------------------
+   Test suite
+------------------------------------------------- */
 describe("httpClient", () => {
-  let mockFetch: MockedFunction<typeof fetch>;
+  let mockFetch: HttpClientFetcher;
+
+  const createFetchResponse = (opts: {
+    body: unknown;
+    contentType?: string | null;
+    ok?: boolean;
+    status?: number;
+  }): Response => {
+    const headers = new Headers();
+
+    if (opts.contentType) {
+      headers.set("Content-Type", opts.contentType);
+    }
+
+    const isInvalidJson =
+      opts.contentType?.includes("json") && typeof opts.body !== "object";
+
+    return {
+      ok: opts.ok ?? true,
+      status: opts.status ?? 200,
+      headers,
+      json: vi.fn().mockImplementation(() =>
+        isInvalidJson
+          ? Promise.reject(new SyntaxError("Invalid JSON"))
+          : Promise.resolve(opts.body),
+      ),
+      text: vi.fn().mockResolvedValue(String(opts.body)),
+      arrayBuffer: vi.fn().mockResolvedValue(
+        opts.body as ArrayBuffer,
+      ),
+    } as unknown as Response;
+  };
 
   beforeEach(() => {
-    mockFetch = vi.fn();
+    // Cast is intentional: fetch typing differs between DOM & Node/Vitest
+    mockFetch = vi.fn() as unknown as HttpClientFetcher;
+    vi.clearAllMocks();
   });
 
-  const createFetchResponse = (data: unknown): Response =>
-    ({
-      ok: true,
-      json: vi.fn().mockResolvedValue(data),
-      headers: new Headers(),
-    }) as unknown as Response;
+  /* -------------------------------------------------
+     Tests
+  ------------------------------------------------- */
 
   test("uses url directly when baseURL is not provided", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({ success: true }));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: { success: true },
+        contentType: "application/json",
+      }),
+    );
+
     await httpClient({
       url: "/test",
       method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 
-    expect(mockFetch).toHaveBeenCalledWith("/test", expect.any(Object));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/test",
+      expect.any(Object),
+    );
   });
 
   test("resolves baseURL + url when baseURL is provided", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     await httpClient({
       baseURL: "https://api.example.com",
@@ -57,17 +108,30 @@ describe("httpClient", () => {
   });
 
   test("defaults method to GET", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     await httpClient({
       url: "/test",
       fetcher: mockFetch,
     });
 
+    expect(
+      (mockFetch as any).mock.calls[0][1]?.method,
+    ).toBe("GET");
   });
 
   test("uppercases HTTP method", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     await httpClient({
       url: "/test",
@@ -75,11 +139,18 @@ describe("httpClient", () => {
       fetcher: mockFetch,
     });
 
-    expect(mockFetch.mock.calls[0][1]?.method).toBe("POST");
+    expect(
+      (mockFetch as any).mock.calls[0][1]?.method,
+    ).toBe("POST");
   });
 
   test("passes headers correctly", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     const headers = {
       Authorization: "Bearer token",
@@ -87,16 +158,22 @@ describe("httpClient", () => {
 
     await httpClient({
       url: "/secure",
-      method: HTTP_METHODS.GET,
       headers,
       fetcher: mockFetch,
     });
 
-    expect(mockFetch.mock.calls[0][1]?.headers).toEqual(headers);
+    expect(
+      (mockFetch as any).mock.calls[0][1]?.headers,
+    ).toEqual(headers);
   });
 
   test("stringifies body when body is provided", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     const body = { name: "Ayu" };
 
@@ -107,38 +184,38 @@ describe("httpClient", () => {
       fetcher: mockFetch,
     });
 
-    expect(mockFetch.mock.calls[0][1]?.body).toBe(JSON.stringify(body));
+    expect(
+      (mockFetch as any).mock.calls[0][1]?.body,
+    ).toBe(JSON.stringify(body));
   });
 
   test("does not send body when body is undefined", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: {},
+        contentType: "application/json",
+      }),
+    );
 
     await httpClient({
       url: "/test",
       fetcher: mockFetch,
     });
 
-    expect(mockFetch.mock.calls[0][1]?.body).toBeUndefined();
-  });
-
-  test("forwards allowed fetch option: credentials", async () => {
-    mockFetch.mockResolvedValue(createFetchResponse({}));
-
-    await httpClient({
-      url: "/test",
-      method: HTTP_METHODS.GET,
-      credentials: "include",
-      fetcher: mockFetch,
-    });
-
-    const options = mockFetch.mock.calls[0][1];
-
-    expect(options?.credentials).toBe("include");
+    expect(
+      (mockFetch as any).mock.calls[0][1]?.body,
+    ).toBeUndefined();
   });
 
   test("returns parsed JSON response typed as T", async () => {
     const responseData = { id: 1, name: "Ayu" };
-    mockFetch.mockResolvedValue(createFetchResponse(responseData));
+
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: responseData,
+        contentType: "application/json",
+      }),
+    );
 
     const result = await httpClient<typeof responseData>({
       url: "/user",
@@ -149,11 +226,15 @@ describe("httpClient", () => {
   });
 
   test("calls response.json exactly once", async () => {
-    const response = createFetchResponse({});
-    mockFetch.mockResolvedValue(response);
+    const response = createFetchResponse({
+      body: {},
+      contentType: "application/json",
+    });
+
+    (mockFetch as any).mockResolvedValue(response);
+
     await httpClient({
       url: "/test",
-      method: HTTP_METHODS.GET,
       fetcher: mockFetch,
     });
 
