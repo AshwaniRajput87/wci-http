@@ -4,16 +4,35 @@
  * Thin wrapper over the core httpClient.
  * Intended for simple GET calls with shared defaults.
  */
-// src/requests/get.ts
+
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/http.types";
+import { HTTP_METHODS } from "../constants/httpMethods";
+
+import type {
+  HttpClientConfig,
+  HttpRequestOptions,
+} from "../types/http.types";
 
 export const get = <T = unknown>(
   url: string,
   options: HttpRequestOptions = {},
-): Promise<T> =>
-  httpClient<T>({
+  instanceConfig: HttpClientConfig = {},
+): Promise<T> => {
+  const mergedConfig = {
+    // instance-level defaults
+    ...instanceConfig,
+
+    // request-level overrides
     ...options,
+
     url,
-    method: "GET",
-  });
+    method: HTTP_METHODS.GET, 
+
+    headers: {
+      ...(instanceConfig.headers ?? {}),
+      ...(options.headers ?? {}),
+    },
+  };
+
+  return httpClient<T>(mergedConfig);
+};

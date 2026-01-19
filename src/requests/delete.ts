@@ -1,12 +1,17 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/http.types";
+import type { HttpClientConfig, HttpRequestOptions } from "../types/http.types";
 
 export const del = <T = unknown>(
   url: string,
   options: HttpRequestOptions = {},
-): Promise<T> =>
-  httpClient<T>({
+  instanceConfig: HttpClientConfig = {},
+): Promise<T> => {
+  const mergedConfig = {
+    ...instanceConfig,
     ...options,
     url,
     method: "DELETE",
-  });
+    headers: { ...instanceConfig.headers, ...options.headers },
+  };
+  return httpClient<T>(mergedConfig);
+};

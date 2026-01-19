@@ -1,19 +1,35 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/http.types";
+import { HTTP_METHODS } from "../constants/httpMethods";
+
+import type {
+  HttpClientConfig,
+  HttpRequestOptions,
+} from "../types/http.types";
+
 import { resolveBodyAndHeaders } from "../utils/bodyUtils";
 
 export const patch = <T = unknown>(
   url: string,
   body?: unknown,
   options: HttpRequestOptions = {},
+  instanceConfig: HttpClientConfig = {},
 ): Promise<T> => {
-  const headers = resolveBodyAndHeaders(body, { ...options.headers });
+  const mergedHeaders = {
+    ...(instanceConfig.headers ?? {}),
+    ...(options.headers ?? {}),
+  };
 
-  return httpClient<T>({
+  const finalHeaders = resolveBodyAndHeaders(body, mergedHeaders);
+
+  const mergedConfig = {
+    ...instanceConfig,
     ...options,
+
     url,
-    method: "PATCH",
+    method: HTTP_METHODS.PATCH, 
     body,
-    headers,
-  });
+    headers: finalHeaders,
+  };
+
+  return httpClient<T>(mergedConfig);
 };

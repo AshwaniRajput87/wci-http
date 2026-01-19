@@ -1,12 +1,36 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/http.types";
+import { HTTP_METHODS } from "../constants/httpMethods";
 
+import type {
+  HttpClientConfig,
+  HttpRequestOptions,
+} from "../types/http.types";
+
+/**
+ * OPTIONS request
+ * Axios-like wrapper with instance + request config merging
+ */
 export const optionsReq = <T = unknown>(
   url: string,
   options: HttpRequestOptions = {},
-): Promise<T> =>
-  httpClient<T>({
+  instanceConfig: HttpClientConfig = {},
+): Promise<T> => {
+  const mergedConfig = {
+    // instance-level defaults
+    ...instanceConfig,
+
+    // request-level overrides
     ...options,
+
     url,
-    method: "OPTIONS",
-  });
+    method: HTTP_METHODS.OPTIONS, 
+
+    // headers must be merged carefully
+    headers: {
+      ...(instanceConfig.headers ?? {}),
+      ...(options.headers ?? {}),
+    },
+  };
+
+  return httpClient<T>(mergedConfig);
+};

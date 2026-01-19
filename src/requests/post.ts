@@ -1,6 +1,11 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpRequestOptions } from "../types/http.types";
+import { HTTP_METHODS } from "../constants/httpMethods";
 import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
+
+import type {
+  HttpClientConfig,
+  HttpRequestOptions,
+} from "../types/http.types";
 
 /**
  * Perform an HTTP POST request.
@@ -9,8 +14,12 @@ export const post = <T = unknown>(
   url: string,
   body?: unknown,
   options: HttpRequestOptions = {},
+  instanceConfig: HttpClientConfig = {},
 ): Promise<T> => {
-  const headers: Record<string, string> = { ...options.headers };
+  const headers: Record<string, string> = {
+    ...(instanceConfig.headers ?? {}),
+    ...(options.headers ?? {}),
+  };
 
   const isSpecialBody =
     (typeof FormData !== "undefined" && body instanceof FormData) ||
@@ -27,11 +36,15 @@ export const post = <T = unknown>(
       : CONTENT_TYPES.JSON;
   }
 
-  return httpClient<T>({
-    ...options, // 1. User options go FIRST
-    url, // 2. Hardcoded URL goes LATER (wins)
-    method: "POST", // 3. Hardcoded Method goes LATER (wins)
-    body, // 4. Hardcoded Body goes LATER (wins)
-    headers, // 5. Hardcoded Headers goes LATER (wins)
-  });
+  const mergedConfig = {
+    ...instanceConfig,
+    ...options,
+
+    url,
+    method: HTTP_METHODS.POST, 
+    body,
+    headers,
+  };
+
+  return httpClient<T>(mergedConfig);
 };

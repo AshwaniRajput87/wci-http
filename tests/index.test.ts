@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { createHttpClient } from "../src";
+import { createHttpErrorCodes } from "../src/errors/httpErrorCodes";
 
-describe("createHttpClient", () => {
+describe("createHttpErrorCodes", () => {
   it("creates client with errorCodes", () => {
-    const client = createHttpClient({ errorPrefix: "TEST" });
-    expect(client.errorCodes.NETWORK_ERROR).toBe("TEST_HTTP_NETWORK_ERROR");
+    const errorCodes = createHttpErrorCodes("TEST");
+    expect(errorCodes.NETWORK_ERROR).toBe("TEST_HTTP_NETWORK_ERROR");
   });
 });
