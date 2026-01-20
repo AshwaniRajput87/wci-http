@@ -4,6 +4,7 @@ import type { HttpMethod, HttpRequest } from "../types/http.types";
 import { resolveUrl } from "../utils/urlResolverUtils";
 import { sleep } from "../utils/sleepUtils";
 import { serializeRequestBody } from "../utils/bodySerializerzUtils";
+import { parseResponseBody } from "../utils/parseResponseBody";
 
 import { WciHttpError } from "../errors/WciHttpError";
 import { createHttpErrorCodes } from "../errors/httpErrorCodes";
@@ -19,24 +20,17 @@ import { executeFetch } from "../requests/executeFetch";
 
 const httpErrorCodes = createHttpErrorCodes();
 
-/**
- * Core Axios-like HTTP client built on Fetch
- */
 export const httpClient = async <T = unknown>(
   config: HttpRequest,
 ): Promise<T> => {
-  const {
-    retry = false,
-    maxRetries = 3,
-    retryDelayMs = 1000,
-  } = config;
+  const { retry = false, maxRetries = 3, retryDelayMs = 1000 } = config;
 
   const finalUrl = resolveUrl(config.baseURL, config.url);
 
-  const initialRequest: HttpRequest = { 
+  const initialRequest: HttpRequest = {
     ...config,
     url: finalUrl,
-    headers: config.headers ?? {}, // INIT HEADERS
+    headers: config.headers ?? {},
   };
 
   let lastError: WciHttpError | undefined;
@@ -44,36 +38,24 @@ export const httpClient = async <T = unknown>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let request: HttpRequest = {
       ...initialRequest,
-      headers: { ...initialRequest.headers }, // ✅ CLONE HEADERS PER RETRY
+      headers: { ...initialRequest.headers },
     };
 
     try {
-      /* ---------------------------------------
-         1️⃣ Apply request interceptors
-      --------------------------------------- */
       request = await applyRequestInterceptors(request);
 
-      /* ---------------------------------------
-         2️⃣ Timeout + Abort handling
-      --------------------------------------- */
       const { signal, clear } = createTimeoutController(
         request.timeoutMs,
         request.signal,
       );
 
-      /* ---------------------------------------
-         3️⃣ Body serialization (SAFE MERGE)
-      --------------------------------------- */
       const serialized = serializeRequestBody(request);
 
       const finalHeaders = {
         ...request.headers,
-        ...serialized.headers, // ✅ DO NOT OVERRIDE AUTH
+        ...serialized.headers,
       };
 
-      /* ---------------------------------------
-         4️⃣ Execute fetch
-      --------------------------------------- */
       let response = await executeFetch(
         request.fetcher ?? fetch,
         {
@@ -85,15 +67,9 @@ export const httpClient = async <T = unknown>(
         signal,
       );
 
-      /* ---------------------------------------
-         5️⃣ Apply response interceptors
-      --------------------------------------- */
       response = await applyResponseInterceptors(response, request);
       clear();
 
-      /* ---------------------------------------
-         6️⃣ HTTP error handling
-      --------------------------------------- */
       if (!response.ok) {
         throw new WciHttpError({
           code: `HTTP_${response.status}`,
@@ -104,28 +80,37 @@ export const httpClient = async <T = unknown>(
         });
       }
 
-      /* ---------------------------------------
-         7️⃣ No-body responses
-      --------------------------------------- */
       if (request.method === HTTP_METHODS.HEAD || response.status === 204) {
         return undefined as T;
       }
 
-      const contentLength = response.headers.get("content-length");
-      if (contentLength === "0") {
+      if (response.headers.get("content-length") === "0") {
         return undefined as T;
       }
 
-      /* ---------------------------------------
-         8️⃣ Parse JSON (Axios-like default)
-      --------------------------------------- */
-      return (await response.json()) as T;
+      try {
+        return (await parseResponseBody(response)) as T;
+      } catch (err) {
+        if (err instanceof WciHttpError) {
+          throw err;
+        }
+
+        throw new WciHttpError({
+          code: httpErrorCodes.INVALID_JSON,
+          message: "Failed to parse response body",
+          url: request.url,
+          method: request.method,
+          cause: err,
+        });
+      }
     } catch (error: unknown) {
+      if (error instanceof WciHttpError) {
+        throw error;
+      }
+
       let generatedError: WciHttpError;
 
-      if (error instanceof WciHttpError) {
-        generatedError = error;
-      } else if (
+      if (
         (error as any)?.name === "AbortError" ||
         (error as any)?.name === "TimeoutError"
       ) {
@@ -149,9 +134,6 @@ export const httpClient = async <T = unknown>(
 
       lastError = generatedError;
 
-      /* ---------------------------------------
-         9️⃣ Retry decision
-      --------------------------------------- */
       const shouldRetry =
         retry &&
         attempt < maxRetries &&

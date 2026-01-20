@@ -30,6 +30,7 @@ export class WciHttpError extends Error {
   readonly retryable?: boolean;
   readonly timeout?: boolean;
   readonly cause?: unknown;
+  readonly isWciHttpError = true;
 
   constructor(options: WciHttpErrorOptions) {
     super(options.message);
@@ -57,6 +58,7 @@ export class WciHttpError extends Error {
       retryable: this.retryable,
       timeout: this.timeout,
       cause: this.cause,
+      isWciHttpError: this.isWciHttpError,
     };
   }
 }

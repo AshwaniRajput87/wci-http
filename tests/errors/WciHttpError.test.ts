@@ -58,6 +58,7 @@ describe("WciHttpError", () => {
       url: undefined,
       timeout: undefined,
       cause: undefined,
+      isWciHttpError: true,
     });
 
     // Ensure it can be stringified without circular reference issues

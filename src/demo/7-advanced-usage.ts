@@ -85,12 +85,9 @@ export const fetchMultipleResources = async (): Promise<[Post, User[], any[]]> =
  * Demo Runner
  * =================================================================
  */
-const runDemos = async () => {
+export async function run(): Promise<void> {
+  console.log('--- Demo 7: Advanced Usage ---');
   await fetchPostAndUser();
   await fetchMultipleResources();
-};
+}
 
-// To run this demo, you could execute this file with a Node.js runtime
-// that supports ES modules, like tsx or ts-node.
-// e.g., `npx tsx src/demo/advanced-usage.ts`
-runDemos();

@@ -9,19 +9,16 @@ import {
 import { HTTP_METHODS } from "../../src/constants/httpMethods";
 import { httpClient } from "../../src/client/httpClient";
 import type { HttpClientFetcher } from "../../src/types/http.types";
+import { createHttpErrorCodes } from "../../src/errors/httpErrorCodes";
 
-/* -------------------------------------------------
-   Mock URL resolver
-------------------------------------------------- */
+const httpErrorCodes = createHttpErrorCodes();
+
 vi.mock("../../src/utils/urlResolverUtils", () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>
     baseURL ? `${baseURL}${url}` : url,
   ),
 }));
 
-/* -------------------------------------------------
-   Test suite
-------------------------------------------------- */
 describe("httpClient", () => {
   let mockFetch: HttpClientFetcher;
 
@@ -38,7 +35,8 @@ describe("httpClient", () => {
     }
 
     const isInvalidJson =
-      opts.contentType?.includes("json") && typeof opts.body !== "object";
+      opts.contentType?.includes("json") &&
+      typeof opts.body === "string";
 
     return {
       ok: opts.ok ?? true,
@@ -57,14 +55,9 @@ describe("httpClient", () => {
   };
 
   beforeEach(() => {
-    // Cast is intentional: fetch typing differs between DOM & Node/Vitest
     mockFetch = vi.fn() as unknown as HttpClientFetcher;
     vi.clearAllMocks();
   });
-
-  /* -------------------------------------------------
-     Tests
-  ------------------------------------------------- */
 
   test("uses url directly when baseURL is not provided", async () => {
     (mockFetch as any).mockResolvedValue(
@@ -239,5 +232,24 @@ describe("httpClient", () => {
     });
 
     expect(response.json).toHaveBeenCalledTimes(1);
+  });
+
+  test("should throw WciHttpError for invalid JSON", async () => {
+    (mockFetch as any).mockResolvedValue(
+      createFetchResponse({
+        body: "not-json",
+        contentType: "application/json",
+      }),
+    );
+
+    await expect(
+      httpClient({
+        url: "/invalid-json",
+        fetcher: mockFetch,
+      }),
+    ).rejects.toMatchObject({
+      name: "WciHttpError",
+      code: httpErrorCodes.INVALID_JSON,
+    });
   });
 });
