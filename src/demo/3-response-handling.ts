@@ -5,6 +5,8 @@
  * Content-Types and logs the detected response type.
  */
 import wciHttp from '../index';
+import { logHttpError } from './httpErrorLogger';
+import { WciHttpError } from '../errors/WciHttpError';
 
 const API_BASE = 'https://jsonplaceholder.typicode.com';
 
@@ -18,7 +20,11 @@ export async function run(): Promise<void> {
     console.log('Detected Response Type (JSON):', typeof jsonResponse);
     console.log('JSON Response Data (title):', jsonResponse.title);
   } catch (error) {
-    console.error('JSON response failed:', error);
+    if (error instanceof WciHttpError) {
+      logHttpError(error);
+    } else {
+      console.error('An unexpected error occurred:', error);
+    }
   }
 
   // 2. Fetch text/plain or text/html response
@@ -29,17 +35,24 @@ export async function run(): Promise<void> {
     console.log('Detected Response Type (HTML):', typeof htmlResponse);
     console.log('HTML Response Data (starts with):', (htmlResponse as string).substring(0, 100));
   } catch (error) {
-    console.error('HTML response failed:', error);
+    if (error instanceof WciHttpError) {
+      logHttpError(error);
+    } else {
+      console.error('An unexpected error occurred:', error);
+    }
   }
 
-  // 3. Fetch unknown content-type → ArrayBuffer
+  // 3. Demonstrate network error handling
   try {
-    console.log('\nFetching an image (unknown content-type, expects ArrayBuffer)...');
-    // Using a small public image. The client should parse this as ArrayBuffer.
-    const imageResponse = await wciHttp.get('https://via.placeholder.com/150');
-    console.log('Detected Response Type (Image/ArrayBuffer):', imageResponse.constructor.name);
-    console.log('ArrayBuffer length:', (imageResponse as ArrayBuffer).byteLength, 'bytes');
+    console.log('\n3. Demonstrating a network error (e.g., connection refused)...');
+    // This request is expected to fail and produce a WciHttpError
+    await wciHttp.get('http://localhost:9999/non-existent.jpg');
   } catch (error) {
-    console.error('Image/ArrayBuffer response failed:', error);
+    if (error instanceof WciHttpError) {
+      console.log('✅ Captured network error as expected:');
+      logHttpError(error);
+    } else {
+      console.error('An unexpected error occurred:', error);
+    }
   }
 }

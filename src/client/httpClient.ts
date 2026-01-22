@@ -20,6 +20,16 @@ import { executeFetch } from "../requests/executeFetch";
 
 const httpErrorCodes = createHttpErrorCodes();
 
+const RETRYABLE_ERROR_CODES = new Set([
+  httpErrorCodes.NETWORK_ERROR,
+  httpErrorCodes.TIMEOUT,
+  httpErrorCodes.TOO_MANY_REQUESTS,
+  httpErrorCodes.INTERNAL_SERVER_ERROR,
+  httpErrorCodes.BAD_GATEWAY,
+  httpErrorCodes.SERVICE_UNAVAILABLE,
+  httpErrorCodes.GATEWAY_TIMEOUT,
+]);
+
 export const httpClient = async <T = unknown>(
   config: HttpRequest,
 ): Promise<T> => {
@@ -71,8 +81,24 @@ export const httpClient = async <T = unknown>(
       clear();
 
       if (!response.ok) {
+        let errorCode: string;
+        switch (response.status) {
+          case 400: errorCode = httpErrorCodes.BAD_REQUEST; break;
+          case 401: errorCode = httpErrorCodes.UNAUTHORIZED; break;
+          case 403: errorCode = httpErrorCodes.FORBIDDEN; break;
+          case 404: errorCode = httpErrorCodes.NOT_FOUND; break;
+          case 409: errorCode = httpErrorCodes.CONFLICT; break;
+          case 422: errorCode = httpErrorCodes.UNPROCESSABLE_ENTITY; break;
+          case 429: errorCode = httpErrorCodes.TOO_MANY_REQUESTS; break;
+          case 500: errorCode = httpErrorCodes.INTERNAL_SERVER_ERROR; break;
+          case 502: errorCode = httpErrorCodes.BAD_GATEWAY; break;
+          case 503: errorCode = httpErrorCodes.SERVICE_UNAVAILABLE; break;
+          case 504: errorCode = httpErrorCodes.GATEWAY_TIMEOUT; break;
+          default: errorCode = `HTTP_${response.status}`; break;
+        }
+
         throw new WciHttpError({
-          code: `HTTP_${response.status}`,
+          code: errorCode,
           status: response.status,
           message: `Request failed with status ${response.status}`,
           url: request.url,
@@ -91,61 +117,80 @@ export const httpClient = async <T = unknown>(
       try {
         return (await parseResponseBody(response)) as T;
       } catch (err) {
+        // Here, err could be a WciHttpError (e.g., from networkUtils) or a parsing error
+        let parseError: WciHttpError;
         if (err instanceof WciHttpError) {
-          throw err;
+          parseError = err;
+        } else {
+          parseError = new WciHttpError({
+            code: httpErrorCodes.INVALID_RESPONSE, // Changed from INVALID_JSON for generality
+            message: "Failed to parse response body",
+            url: request.url,
+            method: request.method,
+            cause: err,
+          });
         }
-
-        throw new WciHttpError({
-          code: httpErrorCodes.INVALID_JSON,
-          message: "Failed to parse response body",
-          url: request.url,
-          method: request.method,
-          cause: err,
-        });
+        throw parseError; // Always throw wrapped parse errors
       }
     } catch (error: unknown) {
+      let errorCode: string;
+      let errorMessage: string;
+      let errorCause: unknown = error;
+      let isTimeout = false;
+
+      // 1. Consolidate error transformation and determine the error code
       if (error instanceof WciHttpError) {
-        throw error;
-      }
-
-      let generatedError: WciHttpError;
-
-      if (
-        (error as any)?.name === "AbortError" ||
-        (error as any)?.name === "TimeoutError"
-      ) {
-        generatedError = new WciHttpError({
-          code: httpErrorCodes.TIMEOUT,
-          message: "Request timed out",
-          url: request.url,
-          method: request.method,
-          timeout: true,
-          cause: error,
-        });
+        // If it's already a WciHttpError, use its properties
+        errorCode = error.code;
+        errorMessage = error.message;
+        errorCause = error.cause;
+        isTimeout = error.timeout ?? false;
+      } else if ((error as any)?.name === "AbortError") {
+        // Distinguish between user-initiated cancellation and internal timeout
+        if (config.signal?.aborted === true) {
+          errorCode = httpErrorCodes.ABORTED;
+          errorMessage = "Request aborted by user";
+        } else {
+          errorCode = httpErrorCodes.TIMEOUT;
+          errorMessage = "Request timed out";
+          isTimeout = true;
+        }
+      } else if ((error as any)?.name === "TimeoutError") {
+        // Specific timeout errors from fetch implementations
+        errorCode = httpErrorCodes.TIMEOUT;
+        errorMessage = "Request timed out";
+        isTimeout = true;
       } else {
-        generatedError = new WciHttpError({
-          code: httpErrorCodes.NETWORK_ERROR,
-          message: "Network request failed",
-          url: request.url,
-          method: request.method,
-          cause: error,
-        });
+        // Catch-all for network or other unclassified errors
+        errorCode = httpErrorCodes.NETWORK_ERROR;
+        errorMessage = "Network request failed";
       }
 
-      lastError = generatedError;
-
+      // 2. Decide if the error is retryable
       const shouldRetry =
         retry &&
         attempt < maxRetries &&
         isIdempotent(request.method!) &&
-        (generatedError.code === httpErrorCodes.NETWORK_ERROR ||
-          generatedError.code === httpErrorCodes.TIMEOUT);
+        RETRYABLE_ERROR_CODES.has(errorCode);
+
+      // 3. Create the final, comprehensive error object
+      const finalError = new WciHttpError({
+        code: errorCode,
+        message: errorMessage,
+        cause: errorCause,
+        url: request.url,
+        method: request.method,
+        retryable: shouldRetry, // Correctly set the retryable flag
+        timeout: isTimeout,
+      });
+
+      lastError = finalError;
 
       if (!shouldRetry) {
-        throw generatedError;
+        throw finalError; // Throw if not retrying
       }
 
-      await sleep(calculateRetryDelay(retryDelayMs, attempt));
+      await sleep(calculateRetryDelay(retryDelayMs, attempt)); // Wait before next attempt
     }
   }
 
