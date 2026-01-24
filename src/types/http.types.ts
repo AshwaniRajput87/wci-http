@@ -54,6 +54,7 @@ export interface HttpRequest {
   timeoutMs?: number;
   baseURL?: string;
   query?: HttpQuery;
+  responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
   logger?: WciLogger;
   signal?: AbortSignal;

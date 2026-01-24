@@ -115,7 +115,7 @@ export const httpClient = async <T = unknown>(
       }
 
       try {
-        return (await parseResponseBody(response)) as T;
+        return (await parseResponseBody(response, request)) as T;
       } catch (err) {
         // Here, err could be a WciHttpError (e.g., from networkUtils) or a parsing error
         let parseError: WciHttpError;

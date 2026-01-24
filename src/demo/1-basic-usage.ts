@@ -1,7 +1,8 @@
 /**
  * Demo 1: Basic Usage
  *
- * This demo shows how to make simple GET and POST requests.
+ * This demo shows how to make simple GET and POST requests,
+ * and how to use the `responseType` option.
  */
 import wciHttp from '../index';
 import { Post } from './types';
@@ -11,11 +12,11 @@ const API_BASE = 'https://jsonplaceholder.typicode.com';
 export async function run(): Promise<void> {
   console.log('--- Demo 1: Basic Usage ---');
 
-  // 1. Simple GET request
+  // 1. Simple GET request (default JSON response)
   try {
-    console.log('\nFetching a single post...');
+    console.log('\nFetching a single post (default JSON handling)...');
     const post = await wciHttp.get<Post>(`${API_BASE}/posts/1`);
-    console.log('GET Response Data:', post);
+    console.log('GET Response Data (as JSON object):', post);
   } catch (error) {
     console.error('GET request failed:', error);
   }
@@ -34,5 +35,27 @@ export async function run(): Promise<void> {
     console.log('POST Response Data:', createdPost);
   } catch (error) {
     console.error('POST request failed:', error);
+  }
+
+  // 3. GET request with responseType: 'text'
+  try {
+    console.log("\nFetching a post with responseType: 'text'...");
+    const postAsText = await wciHttp.get<string>(`${API_BASE}/posts/1`, {
+      responseType: 'text',
+    });
+    console.log('GET Response Data (as text):', postAsText.substring(0, 80) + '...');
+  } catch (error) {
+    console.error('Text GET request failed:', error);
+  }
+
+  // 4. GET request with responseType: 'arraybuffer' for an image
+  try {
+    console.log("\nFetching an image with responseType: 'arraybuffer'...");
+    const imageBuffer = await wciHttp.get<ArrayBuffer>('https://dummyimage.com/150x150/000/fff', {
+      responseType: 'arraybuffer',
+    });
+    console.log(`GET Response Data (as ArrayBuffer): received ${imageBuffer.byteLength} bytes.`);
+  } catch (error) {
+    console.error('ArrayBuffer GET request failed:', error);
   }
 }

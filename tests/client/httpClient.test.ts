@@ -51,6 +51,7 @@ describe("httpClient", () => {
       arrayBuffer: vi.fn().mockResolvedValue(
         opts.body as ArrayBuffer,
       ),
+      blob: vi.fn().mockResolvedValue(opts.body),
     } as unknown as Response;
   };
 
@@ -250,6 +251,133 @@ describe("httpClient", () => {
     ).rejects.toMatchObject({
       name: "WciHttpError",
       code: httpErrorCodes.INVALID_JSON,
+    });
+  });
+
+  describe("responseType handling", () => {
+    test("should parse response as JSON when responseType is 'json'", async () => {
+      const responseData = { id: 1, name: "Test" };
+      const response = createFetchResponse({
+        body: responseData,
+        contentType: "application/json",
+      });
+      (mockFetch as any).mockResolvedValue(response);
+
+      const result = await httpClient({
+        url: "/test",
+        responseType: 'json',
+        fetcher: mockFetch,
+      });
+
+      expect(result).toEqual(responseData);
+      expect(response.json).toHaveBeenCalledTimes(1);
+    });
+
+    test("should parse response as text when responseType is 'text'", async () => {
+      const responseData = "plain text";
+      const response = createFetchResponse({
+        body: responseData,
+        contentType: "text/plain",
+      });
+      (mockFetch as any).mockResolvedValue(response);
+
+      const result = await httpClient({
+        url: "/test",
+        responseType: 'text',
+        fetcher: mockFetch,
+      });
+
+      expect(result).toEqual(responseData);
+      expect(response.text).toHaveBeenCalledTimes(1);
+    });
+
+    test("should parse response as ArrayBuffer when responseType is 'arraybuffer'", async () => {
+      const responseData = new ArrayBuffer(8);
+      const response = createFetchResponse({
+        body: responseData,
+        contentType: "application/octet-stream",
+      });
+      (mockFetch as any).mockResolvedValue(response);
+
+      const result = await httpClient({
+        url: "/test",
+        responseType: 'arraybuffer',
+        fetcher: mockFetch,
+      });
+
+      expect(result).toEqual(responseData);
+      expect(response.arrayBuffer).toHaveBeenCalledTimes(1);
+    });
+
+    test("should parse response as Blob when responseType is 'blob'", async () => {
+      const responseData = "some data";
+      const blob = new Blob([responseData]);
+      const response = createFetchResponse({
+          body: blob,
+          contentType: "application/octet-stream",
+      });
+      (mockFetch as any).mockResolvedValue(response);
+
+      const result = await httpClient<Blob>({
+          url: "/test",
+          responseType: 'blob',
+          fetcher: mockFetch,
+      });
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(await result.text()).toEqual(responseData)
+      expect(response.blob).toHaveBeenCalledTimes(1);
+    });
+
+    test("should return ReadableStream when responseType is 'stream'", async () => {
+        const stream = new ReadableStream();
+        const response = createFetchResponse({
+            body: "doesn't matter",
+        });
+        Object.defineProperty(response, 'body', { value: stream, writable: true });
+
+        (mockFetch as any).mockResolvedValue(response);
+
+        const result = await httpClient({
+            url: "/test",
+            responseType: 'stream',
+            fetcher: mockFetch,
+        });
+
+        expect(result).toBe(stream);
+    });
+
+    test("should throw for invalid JSON when responseType is 'json'", async () => {
+        const response = createFetchResponse({
+            body: "invalid-json",
+            contentType: "application/json",
+        });
+        (mockFetch as any).mockResolvedValue(response);
+
+        await expect(httpClient({
+            url: "/test",
+            responseType: 'json',
+            fetcher: mockFetch,
+        })).rejects.toMatchObject({
+            code: httpErrorCodes.INVALID_JSON
+        });
+    });
+
+    test("should fall back to content-type detection if responseType is not provided", async () => {
+        const responseData = { id: 1, name: "Test" };
+        const response = createFetchResponse({
+            body: responseData,
+            contentType: "application/json",
+        });
+        (mockFetch as any).mockResolvedValue(response);
+
+        const result = await httpClient({
+            url: "/test",
+            fetcher: mockFetch,
+        });
+
+        expect(result).toEqual(responseData);
+        expect(response.json).toHaveBeenCalledTimes(1);
     });
   });
 });

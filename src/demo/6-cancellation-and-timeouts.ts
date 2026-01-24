@@ -8,7 +8,7 @@ import wciHttp from '../index';
 import { WciHttpError } from '../errors/WciHttpError';
 import { logHttpError } from './httpErrorLogger';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+
 const HTTPBIN_BASE = 'https://httpbin.org';
 
 export async function run(): Promise<void> {
