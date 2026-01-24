@@ -42,7 +42,7 @@ export const createHttpErrorCodes = (prefix = "WCI") => {
     INVALID_JSON: create(domain, HTTP_ERROR_KEYS.INVALID_JSON),
     INVALID_RESPONSE: create(domain, HTTP_ERROR_KEYS.INVALID_RESPONSE),
     UNKNOWN_ERROR: create(domain, HTTP_ERROR_KEYS.UNKNOWN_ERROR),
-  } as const;
+  };
 };
 
 export type HttpErrorCodes = ReturnType<typeof createHttpErrorCodes>;

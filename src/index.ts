@@ -1,5 +1,8 @@
 import { WciHttp } from "./client/WciHttp";
+import { httpClient } from "./client/httpClient";
 import type { HttpClientConfig } from "./types/http.types";
+
+export { httpClient };
 
 // Create a default instance
 const wciHttp = new WciHttp();

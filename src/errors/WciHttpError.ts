@@ -1,3 +1,5 @@
+import { ErrorCode } from "./createErrorCode";
+
 /**
  * Typed HTTP error used across the WCI HTTP client.
  *
@@ -9,7 +11,7 @@
  * Designed to be serializable, predictable, and infra-safe.
  */
 export interface WciHttpErrorOptions {
-  code: string;
+  code: string | ErrorCode;
   message: string;
   cause?: unknown;
   status?: number;
@@ -23,7 +25,7 @@ export interface WciHttpErrorOptions {
  * Strongly typed HTTP error with metadata.
  */
 export class WciHttpError extends Error {
-  readonly code: string;
+  readonly code: ErrorCode;
   readonly status?: number;
   readonly method?: string;
   readonly url?: string;
@@ -36,7 +38,7 @@ export class WciHttpError extends Error {
     super(options.message);
 
     this.name = 'WciHttpError';
-    this.code = options.code;
+    this.code = options.code as ErrorCode;
     this.status = options.status;
     this.method = options.method;
     this.url = options.url;

@@ -67,6 +67,17 @@ export interface HttpRequest {
 export type HttpRequestOptions =
   Omit<HttpRequest, "url" | "method" | "body">;
 
+export interface HttpClient {
+  <T = unknown>(config: HttpRequest): Promise<T>;
+  get<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
+  post<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
+  put<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
+  delete<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
+  patch<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
+  head<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
+  options<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
+}
+
 
 export interface HttpClientConfig {
   baseURL?: string;

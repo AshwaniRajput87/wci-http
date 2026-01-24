@@ -1,5 +1,8 @@
 import { HTTP_METHODS } from "../constants/httpMethods";
-import type { HttpMethod, HttpRequest } from "../types/http.types";
+import type { HttpMethod, HttpRequest, HttpClient, HttpRequestOptions } from "../types/http.types";
+import { ErrorCode, createErrorCodeFactory } from '../errors/createErrorCode';
+import { ERROR_DOMAINS } from "../errors/errorDomains";
+
 
 import { resolveUrl } from "../utils/urlResolverUtils";
 import { sleep } from "../utils/sleepUtils";
@@ -7,7 +10,7 @@ import { serializeRequestBody } from "../utils/bodySerializerzUtils";
 import { parseResponseBody } from "../utils/parseResponseBody";
 
 import { WciHttpError } from "../errors/WciHttpError";
-import { createHttpErrorCodes } from "../errors/httpErrorCodes";
+import { createHttpErrorCodes, HttpErrorCodes } from "../errors/httpErrorCodes";
 
 import { isIdempotent } from "../retries/isIdempotentInteceptor";
 import { calculateRetryDelay } from "../retries/retryDelayInterceptor";
@@ -18,7 +21,11 @@ import { applyResponseInterceptors } from "../interceptors/applyResponseIntercep
 import { createTimeoutController } from "../requests/timeoutController";
 import { executeFetch } from "../requests/executeFetch";
 
-const httpErrorCodes = createHttpErrorCodes();
+const httpErrorCodes: HttpErrorCodes = createHttpErrorCodes();
+
+
+
+
 
 const RETRYABLE_ERROR_CODES = new Set([
   httpErrorCodes.NETWORK_ERROR,
@@ -30,7 +37,9 @@ const RETRYABLE_ERROR_CODES = new Set([
   httpErrorCodes.GATEWAY_TIMEOUT,
 ]);
 
-export const httpClient = async <T = unknown>(
+
+
+const coreHttpClient = async <T = unknown>(
   config: HttpRequest,
 ): Promise<T> => {
   const { retry = false, maxRetries = 3, retryDelayMs = 1000 } = config;
@@ -81,7 +90,7 @@ export const httpClient = async <T = unknown>(
       clear();
 
       if (!response.ok) {
-        let errorCode: string;
+        let errorCode: ErrorCode;
         switch (response.status) {
           case 400: errorCode = httpErrorCodes.BAD_REQUEST; break;
           case 401: errorCode = httpErrorCodes.UNAUTHORIZED; break;
@@ -94,7 +103,7 @@ export const httpClient = async <T = unknown>(
           case 502: errorCode = httpErrorCodes.BAD_GATEWAY; break;
           case 503: errorCode = httpErrorCodes.SERVICE_UNAVAILABLE; break;
           case 504: errorCode = httpErrorCodes.GATEWAY_TIMEOUT; break;
-          default: errorCode = `HTTP_${response.status}`; break;
+          default: errorCode = createErrorCodeFactory("WCI")(ERROR_DOMAINS.HTTP, `HTTP_${response.status}`); break;
         }
 
         throw new WciHttpError({
@@ -133,7 +142,7 @@ export const httpClient = async <T = unknown>(
         throw parseError; // Always throw wrapped parse errors
       }
     } catch (error: unknown) {
-      let errorCode: string;
+      let errorCode: ErrorCode;
       let errorMessage: string;
       let errorCause: unknown = error;
       let isTimeout = false;
@@ -204,3 +213,28 @@ export const httpClient = async <T = unknown>(
     })
   );
 };
+
+export const httpClient: HttpClient = Object.assign(coreHttpClient, {
+  get: <T = unknown>(url: string, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, method: HTTP_METHODS.GET });
+  },
+  post: <T = unknown>(url: string, data?: any, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, body: data, method: HTTP_METHODS.POST });
+  },
+  put: <T = unknown>(url: string, data?: any, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, body: data, method: HTTP_METHODS.PUT });
+  },
+  delete: <T = unknown>(url: string, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, method: HTTP_METHODS.DELETE });
+  },
+  patch: <T = unknown>(url: string, data?: any, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, body: data, method: HTTP_METHODS.PATCH });
+  },
+  head: <T = unknown>(url: string, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, method: HTTP_METHODS.HEAD });
+  },
+  options: <T = unknown>(url: string, config: HttpRequestOptions = {}): Promise<T> => {
+    return coreHttpClient<T>({ ...config, url, method: HTTP_METHODS.OPTIONS });
+  },
+});
+

@@ -380,4 +380,87 @@ describe("httpClient", () => {
         expect(response.json).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("method shortcuts", () => {
+    test("httpClient.get should make a GET request", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: { success: true } }));
+
+      await httpClient.get("/test-get", { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-get");
+      expect(fetchCall[1].method).toBe("GET");
+    });
+
+    test("httpClient.post should make a POST request with data", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: { success: true } }));
+      const postData = { name: "test" };
+
+      await httpClient.post("/test-post", postData, { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-post");
+      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[1].body).toBe(JSON.stringify(postData));
+    });
+
+    test("httpClient.put should make a PUT request with data", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: { success: true } }));
+      const putData = { name: "test-updated" };
+
+      await httpClient.put("/test-put", putData, { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-put");
+      expect(fetchCall[1].method).toBe("PUT");
+      expect(fetchCall[1].body).toBe(JSON.stringify(putData));
+    });
+
+    test("httpClient.delete should make a DELETE request", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: {} }));
+
+      await httpClient.delete("/test-delete", { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-delete");
+      expect(fetchCall[1].method).toBe("DELETE");
+    });
+
+    test("httpClient.patch should make a PATCH request with data", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: { success: true } }));
+      const patchData = { status: "applied" };
+
+      await httpClient.patch("/test-patch", patchData, { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-patch");
+      expect(fetchCall[1].method).toBe("PATCH");
+      expect(fetchCall[1].body).toBe(JSON.stringify(patchData));
+    });
+
+    test("httpClient.head should make a HEAD request", async () => {
+      // HEAD requests typically have no body in response, but we need to mock a successful fetch
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: null, status: 200 }));
+
+      await httpClient.head("/test-head", { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-head");
+      expect(fetchCall[1].method).toBe("HEAD");
+      // HEAD requests should not have a body in the request
+      expect(fetchCall[1].body).toBeUndefined();
+    });
+
+    test("httpClient.options should make an OPTIONS request", async () => {
+      (mockFetch as any).mockResolvedValue(createFetchResponse({ body: null, status: 200 }));
+
+      await httpClient.options("/test-options", { fetcher: mockFetch });
+
+      const fetchCall = (mockFetch as any).mock.calls[0];
+      expect(fetchCall[0]).toBe("/test-options");
+      expect(fetchCall[1].method).toBe("OPTIONS");
+      // OPTIONS requests should not have a body in the request
+      expect(fetchCall[1].body).toBeUndefined();
+    });
+  });
 });
