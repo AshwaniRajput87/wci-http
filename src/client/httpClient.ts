@@ -89,7 +89,10 @@ const coreHttpClient = async <T = unknown>(
       response = await applyResponseInterceptors(response, request);
       clear();
 
-      if (!response.ok) {
+      // Validate status using the provided or default validateStatus function
+      const isValidStatus = request.validateStatus?.(response.status) ?? true;
+
+      if (!isValidStatus) {
         let errorCode: ErrorCode;
         switch (response.status) {
           case 400: errorCode = httpErrorCodes.BAD_REQUEST; break;
@@ -112,6 +115,9 @@ const coreHttpClient = async <T = unknown>(
           message: `Request failed with status ${response.status}`,
           url: request.url,
           method: request.method,
+          config: initialRequest, // Original request config
+          request: request, // Processed request config
+          response: response, // Raw fetch response
         });
       }
 
@@ -124,7 +130,26 @@ const coreHttpClient = async <T = unknown>(
       }
 
       try {
-        return (await parseResponseBody(response, request)) as T;
+        let responseData = (await parseResponseBody(response, request)) as T;
+
+        const responseHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
+
+        // Apply transformResponse
+        if (request.transformResponse) {
+          const transformers = Array.isArray(request.transformResponse)
+            ? request.transformResponse
+            : [request.transformResponse];
+
+          for (const transformer of transformers) {
+            responseData = await Promise.resolve(
+              transformer(responseData, responseHeaders, response.status),
+            );
+          }
+        }
+        return responseData;
       } catch (err) {
         // Here, err could be a WciHttpError (e.g., from networkUtils) or a parsing error
         let parseError: WciHttpError;
@@ -189,8 +214,12 @@ const coreHttpClient = async <T = unknown>(
         cause: errorCause,
         url: request.url,
         method: request.method,
-        retryable: shouldRetry, // Correctly set the retryable flag
+        retryable: shouldRetry,
         timeout: isTimeout,
+        status: (error instanceof WciHttpError) ? error.status : undefined,
+        config: (error instanceof WciHttpError) ? error.config : undefined, // Propagate config
+        request: (error instanceof WciHttpError) ? error.request : undefined, // Propagate request
+        response: (error instanceof WciHttpError) ? error.response : undefined, // Propagate response
       });
 
       lastError = finalError;

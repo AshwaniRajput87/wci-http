@@ -1,17 +1,26 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { WciHttp } from "../../src/client/WciHttp";
-import * as getRequestModule from "../../src/requests/get";
-import * as postRequestModule from "../../src/requests/post";
+import { httpClient } from "../../src/client/httpClient"; // Import the actual httpClient
 
-vi.mock("../../src/requests/get");
-vi.mock("../../src/requests/post");
-
-const get = vi.spyOn(getRequestModule, 'get');
-const post = vi.spyOn(postRequestModule, 'post');
+// Mock the httpClient directly
+vi.mock("../../src/client/httpClient", () => ({
+  httpClient: vi.fn(async (config) => {
+    // Simulate a successful response
+    if (config.url === '/test' || config.url === '/') {
+        return Promise.resolve({ data: 'mock data' });
+    }
+    // Simulate an error for specific scenarios if needed, or just resolve for passing
+    return Promise.resolve({ data: 'mock data' });
+  }),
+}));
 
 describe("WciHttp", () => {
+  // Cast httpClient to MockedFunction for easier assertion
+  const mockedHttpClient = httpClient as unknown as vi.Mock;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedHttpClient.mockClear(); // Clear mock calls specific to httpClient
   });
 
   test("create() should return a new instance that uses merged config", async () => {
@@ -22,31 +31,55 @@ describe("WciHttp", () => {
 
     await newInstance.get("/test");
 
-    const expectedConfig = {
-      baseURL: "https://api.example.com",
-      headers: { "X-Base": "true", "X-New": "true" },
-    };
-
-    expect(get).toHaveBeenCalledWith("/test", {}, expect.objectContaining(expectedConfig));
+    expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+    expect(mockedHttpClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "/test",
+        method: "get",
+        baseURL: "https://api.example.com",
+        headers: expect.objectContaining({ "X-Base": "true", "X-New": "true" }),
+      }),
+    );
   });
 
-  test("get() should call getRequest with instance config", async () => {
+  test("get() should call httpClient with instance config", async () => {
     const baseConfig = { baseURL: "https://api.example.com" };
     const instance = new WciHttp(baseConfig);
 
     await instance.get("/test");
 
-    expect(get).toHaveBeenCalledWith("/test", {}, expect.objectContaining(baseConfig));
+    expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+    expect(mockedHttpClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "/test",
+        method: "get",
+        baseURL: "https://api.example.com",
+      }),
+    );
   });
 
-  test("post() should call postRequest with instance config", async () => {
+  test("post() should call httpClient with instance config", async () => {
     const baseConfig = { baseURL: "https://api.example.com" };
     const instance = new WciHttp(baseConfig);
     const postData = { foo: "bar" };
 
     await instance.post("/test", postData);
 
-    expect(post).toHaveBeenCalledWith("/test", postData, {}, expect.objectContaining(baseConfig));
+    expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+    expect(mockedHttpClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "/test",
+        method: "post",
+        data: postData, // Expect data property now
+        baseURL: "https://api.example.com",
+        headers: {},
+        responseType: "json",
+        timeout: 0,
+        retry: { attempts: 0, delay: 1000 },
+        logging: { level: 'none', logRequestHeaders: false, logResponseHeaders: false },
+        validateStatus: expect.any(Function),
+      }),
+    );
   });
 
   describe("baseURL resolution", () => {
@@ -58,14 +91,40 @@ describe("WciHttp", () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com');
       const instance = new WciHttp({ baseURL: "https://config-url.com" });
       await instance.get("/test");
-      expect(get).toHaveBeenCalledWith("/test", {}, expect.objectContaining({ baseURL: "https://config-url.com" }));
+      expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+      expect(mockedHttpClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "/test",
+          method: "get",
+          baseURL: "https://config-url.com",
+          headers: {},
+          responseType: "json",
+          timeout: 0,
+          retry: { attempts: 0, delay: 1000 },
+          logging: { level: 'none', logRequestHeaders: false, logResponseHeaders: false },
+          validateStatus: expect.any(Function),
+        }),
+      );
     });
 
     test("should use baseURL from environment variable if not in config", async () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com');
       const instance = new WciHttp({});
       await instance.get("/test");
-      expect(get).toHaveBeenCalledWith("/test", {}, expect.objectContaining({ baseURL: "https://env-url.com" }));
+      expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+      expect(mockedHttpClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "/test",
+          method: "get",
+          baseURL: "https://env-url.com",
+          headers: {},
+          responseType: "json",
+          timeout: 0,
+          retry: { attempts: 0, delay: 1000 },
+          logging: { level: 'none', logRequestHeaders: false, logResponseHeaders: false },
+          validateStatus: expect.any(Function),
+        }),
+      );
     });
 
     test("should have undefined baseURL if not in config or env", async () => {
@@ -73,7 +132,11 @@ describe("WciHttp", () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', undefined);
       const instance = new WciHttp({});
       await instance.get("/test");
-      expect(get).toHaveBeenCalledWith("/test", {}, expect.objectContaining({ baseURL: undefined }));
+      expect(mockedHttpClient).toHaveBeenCalledTimes(1);
+      const callArgs = mockedHttpClient.mock.calls[0][0]; // Get the first argument of the first call
+      expect(callArgs.url).toBe("/test");
+      expect(callArgs.method).toBe("get");
+      expect(callArgs.baseURL).toBeUndefined();
     });
   });
 });

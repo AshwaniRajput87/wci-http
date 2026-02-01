@@ -1,3 +1,15 @@
+/**
+ * Controls how the response body is parsed.
+ *
+ * This is a client-side parsing instruction and is independent
+ * of the server-provided Content-Type header.
+ *
+ * If specified, this value takes precedence over automatic
+ * content-type based detection.
+ *
+ * Mirrors Axios responseType behavior.
+ */
+
 import { HTTP_METHODS } from "../constants/httpMethods";
 import { LogLevel } from "./loggingTypes";
 
@@ -62,21 +74,12 @@ export interface HttpRequest {
   responseInterceptors?: ResponseInterceptor[];
   retry?: boolean;
   retryDelayMs?: number;
+  validateStatus?: (status: number) => boolean;
+  transformResponse?: Function | Function[];
 }
 
 export type HttpRequestOptions =
   Omit<HttpRequest, "url" | "method" | "body">;
-
-export interface HttpClient {
-  <T = unknown>(config: HttpRequest): Promise<T>;
-  get<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
-  post<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
-  put<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
-  delete<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
-  patch<T = unknown>(url: string, data?: any, config?: HttpRequestOptions): Promise<T>;
-  head<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
-  options<T = unknown>(url: string, config?: HttpRequestOptions): Promise<T>;
-}
 
 
 export interface HttpClientConfig {
@@ -89,6 +92,8 @@ export interface HttpClientConfig {
   method?: string;
   body?: any;
   logger?: WciLogger;
+  validateStatus?: (status: number) => boolean;
+  transformResponse?: Function | Function[];
 }
 
 export type HttpResponse<T> = {

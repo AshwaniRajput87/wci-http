@@ -1,105 +1,68 @@
 import { WciHttpError } from "../errors/WciHttpError";
 import { createHttpErrorCodes } from "../errors/httpErrorCodes";
 import { HttpRequest } from "../types/http.types";
+import { CONTENT_TYPES } from '../constants/protocol/contentTypes';
 
 const httpErrorCodes = createHttpErrorCodes();
 
-export const parseResponseBody = async (
-  response: Response,
-  request: HttpRequest,
-): Promise<unknown> => {
-  const { responseType } = request;
+export async function parseResponseBody(response: Response, config: HttpRequest): Promise<any> {
+    const { responseType } = config;
+    const contentTypeHeader = response.headers.get("Content-Type") || "";
 
-  if (responseType) {
-    switch (responseType) {
-      case "json":
-        try {
-          return await response.json();
-        } catch (error) {
-          throw new WciHttpError({
-            code: httpErrorCodes.INVALID_JSON,
-            message: "Failed to parse JSON response",
-            cause: error,
-            url: response.url,
-          });
-        }
-      case "text":
-        try {
-          return await response.text();
-        } catch (error) {
-          throw new WciHttpError({
-            code: httpErrorCodes.INVALID_RESPONSE,
-            message: "Failed to parse text response",
-            cause: error,
-            url: response.url,
-          });
-        }
-      case "blob":
-        try {
-          return await response.blob();
-        } catch (error) {
-          throw new WciHttpError({
-            code: httpErrorCodes.INVALID_RESPONSE,
-            message: "Failed to parse blob response",
-            cause: error,
-            url: response.url,
-          });
-        }
-      case "arraybuffer":
-        try {
-          return await response.arrayBuffer();
-        } catch (error) {
-          throw new WciHttpError({
-            code: httpErrorCodes.INVALID_RESPONSE,
-            message: "Failed to parse arraybuffer response",
-            cause: error,
-            url: response.url,
-          });
-        }
-      case "stream":
+    // If responseType is explicitly 'stream', return the raw body
+    if (responseType === 'stream') {
         return response.body;
     }
-  }
 
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (
-    contentType.includes("application/json") ||
-    contentType.endsWith("+json")
-  ) {
-    try {
-      return await response.json();
-    } catch (error) {
-      throw new WciHttpError({
-        code: httpErrorCodes.INVALID_JSON,
-        message: "Failed to parse JSON response",
-        cause: error,
-        url: response.url,
-      });
+    // If responseType is explicitly defined, use it
+    if (responseType) {
+        switch (responseType) {
+            case 'json':
+                try {
+                    return await response.json();
+                } catch (e) {
+                    throw new WciHttpError({
+                        code: httpErrorCodes.INVALID_JSON,
+                        message: "Failed to parse response as JSON",
+                        cause: e,
+                        url: config.url,
+                        method: config.method,
+                        status: response.status // Pass status to error
+                    });
+                }
+            case 'text':
+                return await response.text();
+            case 'arraybuffer':
+                return await response.arrayBuffer();
+            case 'blob':
+                return await response.blob();
+            // No default here because we've handled explicit responseType.
+            // If an unrecognized responseType comes here, it means we should fall through to content-type detection.
+        }
     }
-  }
 
-  if (contentType.startsWith("text/")) {
-    try {
-      return await response.text();
-    } catch (error) {
-      throw new WciHttpError({
-        code: httpErrorCodes.INVALID_RESPONSE,
-        message: "Failed to parse text response",
-        cause: error,
-        url: response.url,
-      });
+    // Fallback to content-type detection if responseType is not provided or recognized
+    if (contentTypeHeader.includes(CONTENT_TYPES.JSON)) {
+        try {
+            // Axios-like behavior: empty body might be null
+            const text = await response.text();
+            return text ? JSON.parse(text) : null;
+        } catch (e) {
+            throw new WciHttpError({
+                code: httpErrorCodes.INVALID_JSON,
+                message: "Failed to parse response as JSON based on Content-Type header",
+                cause: e,
+                url: config.url,
+                method: config.method,
+                status: response.status // Pass status to error
+            });
+        }
+    } else if (contentTypeHeader.includes(CONTENT_TYPES.OCTET_STREAM)) {
+        return await response.arrayBuffer();
+    } else if (contentTypeHeader.includes(CONTENT_TYPES.TEXT)) {
+        return await response.text();
     }
-  }
 
-  try {
-    return await response.arrayBuffer();
-  } catch (error) {
-    throw new WciHttpError({
-      code: httpErrorCodes.INVALID_RESPONSE,
-      message: "Failed to parse binary response",
-      cause: error,
-      url: response.url,
-    });
-  }
-};
+    // Default fallback: return as text if no other type is determined
+    return await response.text();
+}

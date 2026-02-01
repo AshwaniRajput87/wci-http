@@ -23,38 +23,98 @@ describe("httpClient", () => {
   let mockFetch: HttpClientFetcher;
 
   const createFetchResponse = (opts: {
-    body: unknown;
+    body: unknown; // Can be object, string, ArrayBuffer, Blob, ReadableStream
     contentType?: string | null;
     ok?: boolean;
     status?: number;
   }): Response => {
     const headers = new Headers();
-
+  
     if (opts.contentType) {
       headers.set("Content-Type", opts.contentType);
     }
+  
+    // Helper to get text representation of body
+    const getBodyAsText = (): string => {
+      if (typeof opts.body === "string") {
+        return opts.body;
+      }
+      if (typeof opts.body === "object" && opts.body !== null) {
+        if (opts.body instanceof Blob) {
+          // For Blob, assume it will be read as text later
+          return "[Blob Data]";
+        }
+        if (opts.body instanceof ReadableStream) {
+          return "[ReadableStream Data]";
+        }
+        return JSON.stringify(opts.body);
+      }
+      return String(opts.body);
+    };
+  
+    const rawTextBody = getBodyAsText();
+  
+    const jsonMock = vi.fn().mockImplementation(() => {
+      // Handle null or empty string bodies as resolving to null for JSON.
+      // This is an Axios-like behavior for "empty JSON".
+      if (opts.body === null || (typeof opts.body === "string" && !opts.body.trim())) {
+        return Promise.resolve(null);
+      }
 
-    const isInvalidJson =
-      opts.contentType?.includes("json") &&
-      typeof opts.body === "string";
-
-    return {
+      // If contentType indicates JSON, try to parse
+      if (opts.contentType?.includes("json")) {
+        try {
+          const parsed = typeof opts.body === "string" ? JSON.parse(opts.body) : opts.body;
+          if (typeof parsed === 'object' && parsed !== null) {
+            return Promise.resolve(parsed);
+          }
+          // If it's not a parsable object (e.g., number, boolean directly passed as body)
+          return Promise.reject(new SyntaxError("Response body is not a valid JSON object/array"));
+        } catch (e) {
+          return Promise.reject(new SyntaxError("Invalid JSON"));
+        }
+      }
+      // If not JSON content type, reject
+      return Promise.reject(new TypeError("Response not JSON"));
+    });
+  
+    const textMock = vi.fn().mockResolvedValue(rawTextBody);
+  
+    const arrayBufferMock = vi.fn().mockImplementation(() => {
+      if (opts.body instanceof ArrayBuffer) {
+        return Promise.resolve(opts.body);
+      }
+      const encoder = new TextEncoder();
+      return Promise.resolve(encoder.encode(rawTextBody).buffer);
+    });
+  
+    const blobMock = vi.fn().mockImplementation(() => {
+      if (opts.body instanceof Blob) {
+        return Promise.resolve(opts.body);
+      }
+      return Promise.resolve(new Blob([rawTextBody], { type: opts.contentType || 'application/octet-stream' }));
+    });
+  
+    const response: Response = {
       ok: opts.ok ?? true,
       status: opts.status ?? 200,
       headers,
-      json: vi.fn().mockImplementation(() =>
-        isInvalidJson
-          ? Promise.reject(new SyntaxError("Invalid JSON"))
-          : Promise.resolve(opts.body),
-      ),
-      text: vi.fn().mockResolvedValue(String(opts.body)),
-      arrayBuffer: vi.fn().mockResolvedValue(
-        opts.body as ArrayBuffer,
-      ),
-      blob: vi.fn().mockResolvedValue(opts.body),
-    } as unknown as Response;
+      // Only directly assign body if it's a ReadableStream, otherwise null
+      body: opts.body instanceof ReadableStream ? opts.body : null,
+      json: jsonMock,
+      text: textMock,
+      arrayBuffer: arrayBufferMock,
+      blob: blobMock,
+      // Mock other Response properties that might be accessed
+      statusText: String(opts.status ?? 200),
+      url: "mock-url",
+      redirected: false,
+      type: "default",
+      clone: vi.fn(() => createFetchResponse(opts)),
+    };
+  
+    return response;
   };
-
   beforeEach(() => {
     mockFetch = vi.fn() as unknown as HttpClientFetcher;
     vi.clearAllMocks();
@@ -232,7 +292,7 @@ describe("httpClient", () => {
       fetcher: mockFetch,
     });
 
-    expect(response.json).toHaveBeenCalledTimes(1);
+    expect(response.text).toHaveBeenCalledTimes(1);
   });
 
   test("should throw WciHttpError for invalid JSON", async () => {
@@ -332,9 +392,9 @@ describe("httpClient", () => {
     test("should return ReadableStream when responseType is 'stream'", async () => {
         const stream = new ReadableStream();
         const response = createFetchResponse({
-            body: "doesn't matter",
+            body: stream, // Pass the stream directly to createFetchResponse
+            contentType: "application/octet-stream", // Add a content type for realism
         });
-        Object.defineProperty(response, 'body', { value: stream, writable: true });
 
         (mockFetch as any).mockResolvedValue(response);
 
@@ -377,7 +437,7 @@ describe("httpClient", () => {
         });
 
         expect(result).toEqual(responseData);
-        expect(response.json).toHaveBeenCalledTimes(1);
+        expect(response.text).toHaveBeenCalledTimes(1);
     });
   });
 
