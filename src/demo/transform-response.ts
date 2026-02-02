@@ -1,5 +1,5 @@
 import { WciHttp } from "../client/WciHttp";
-import { WciHttpError } from "../errors/WciHttpError";
+
 
 // Assume WciHttp is initialized with a base URL and a mock fetcher
 const mockFetch = jest.fn();

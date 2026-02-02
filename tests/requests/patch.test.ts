@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { httpClient } from "../../src/client/httpClient";
 import { patch } from "../../src/requests/patch";
-import { CONTENT_TYPES } from "../../src/constants/protocol/contentTypes";
+
 
 describe("patch request wrapper", () => {
   beforeEach(() => {

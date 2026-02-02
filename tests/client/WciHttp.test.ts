@@ -2,10 +2,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
 import { coreHttpClient } from '../../src/client/core'
 
-// Mock environment utility as well
-vi.mock('../../src/utils/getBaseUrlFromEnv', () => ({
-  getBaseUrlFromEnv: vi.fn(() => undefined),
-}))
+
 
 // Mock coreHttpClient instead since WciHttp.request() calls coreHttpClient directly
 vi.mock('../../src/client/core', () => ({

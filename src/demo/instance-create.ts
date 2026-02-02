@@ -1,47 +1,49 @@
 import { WciHttp } from '../client/WciHttp';
-import { httpClient } from '../client/httpClient';
 
-const runDemo = async () => {
-    console.log('--- Running Instance Creation Demo ---');
+/**
+ * Demo: Instance Creation (axios.create equivalent)
+ */
+export async function run(): Promise<void> {
+  console.log('\nRunning Instance Creation Demo...\n');
 
-    // 1. Default client vs. instance
-    console.log('\n--- 1. Default vs. Instance ---');
-    const instance = WciHttp.create({ baseURL: 'https://api.example.com' });
+  // Default client
+  const defaultClient = new WciHttp();
 
-    console.log('Default client config:', httpClient.config);
-    console.log('Instance config:', instance.config);
+  // Instance 1 with custom config
+  const apiClient = WciHttp.create({
+    baseURL: 'https://api.example.com',
+    headers: {
+      Authorization: 'Bearer api-token',
+    },
+  });
 
-    // 2. Instance with baseURL and headers
-    console.log('\n--- 2. Instance with baseURL and headers ---');
-    const instanceWithHeaders = WciHttp.create({
-        baseURL: 'https://api.google.com',
-        headers: { 'X-Custom-Header': 'My-Custom-Value' },
-    });
-    console.log('Instance with headers config:', instanceWithHeaders.config);
+  // Instance 2 with different config
+  const authClient = WciHttp.create({
+    baseURL: 'https://auth.example.com',
+    headers: {
+      Authorization: 'Bearer auth-token',
+    },
+  });
 
-    // 3. Interceptor isolation
-    console.log('\n--- 3. Interceptor Isolation ---');
+  // Instance-level interceptors
+  apiClient.interceptors.request.use((config) => {
+    console.log('[apiClient] interceptor executed');
+    return config;
+  });
 
-    const instance1 = WciHttp.create({});
-    const instance2 = WciHttp.create({});
+  authClient.interceptors.request.use((config) => {
+    console.log('[authClient] interceptor executed');
+    return config;
+  });
 
-    instance1.interceptors.request.use(config => {
-        console.log('Instance 1 Request Interceptor');
-        config.headers['X-Instance-1'] = 'true';
-        return config;
-    });
+  // Demonstrate isolation via identity + behavior
+  console.log('Default client instance:', defaultClient);
+  console.log('API client instance:', apiClient);
+  console.log('Auth client instance:', authClient);
 
-    instance2.interceptors.request.use(config => {
-        console.log('Instance 2 Request Interceptor');
-        config.headers['X-Instance-2'] = 'true';
-        return config;
-    });
+  console.log('\nConfigs used to create instances:');
+  console.log('apiClient baseURL → https://api.example.com');
+  console.log('authClient baseURL → https://auth.example.com');
 
-    console.log('Instance 1 interceptors:', instance1.interceptors.request);
-    console.log('Instance 2 interceptors:', instance2.interceptors.request);
-    console.log('Default client interceptors:', httpClient.interceptors.request);
-
-    console.log('\n--- Demo Complete ---');
-};
-
-runDemo();
+  console.log('\nInstance Creation Demo Completed\n');
+}

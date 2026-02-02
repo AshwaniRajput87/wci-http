@@ -45,6 +45,7 @@ describe('WciHttp create', () => {
 
   it('should not affect the global instance', () => {
     const instance = WciHttp.create({ baseURL: 'https://instance.com' })
+    expect(instance.config.baseURL).toBe('https://instance.com') // Ensure instance itself is used
     expect(httpClient.config.baseURL).toBe(undefined)
   })
 

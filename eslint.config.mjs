@@ -18,6 +18,6 @@ export default [
   },
 
   {
-    ignores: ["build/**", "dist/**", "coverage/**", "node_modules/**"],
+    ignores: ["build/**", "dist/**", "coverage/**", "node_modules/**", "src/dist/**"],
   },
 ];

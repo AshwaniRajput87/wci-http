@@ -3,9 +3,9 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { HTTP_METHODS } from '../../src/constants/httpMethods'
 import { httpClient } from '../../src/client/httpClient'
 import * as core from '../../src/client/core'
-import { createHttpErrorCodes } from '../../src/errors/httpErrorCodes'
 
-const httpErrorCodes = createHttpErrorCodes()
+
+
 
 vi.mock('../../src/utils/urlResolverUtils', () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>

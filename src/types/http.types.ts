@@ -75,7 +75,7 @@ export interface HttpRequest {
   retry?: boolean;
   retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
-  transformResponse?: Function | Function[];
+  transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
 }
 
 export type HttpRequestOptions =
@@ -93,7 +93,7 @@ export interface HttpClientConfig {
   body?: any;
   logger?: WciLogger;
   validateStatus?: (status: number) => boolean;
-  transformResponse?: Function | Function[];
+  transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
 }
 
 export type HttpResponse<T> = {
@@ -172,7 +172,7 @@ export interface WciHttpConfig {
   logger?: WciLogger;
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;
-  transformResponse?: Function | Function[];
+  transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
 
   // Retry configuration
   retry?: {

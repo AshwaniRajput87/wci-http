@@ -64,7 +64,7 @@ describe("validateStatus", () => {
             return Promise.resolve(parsed);
           }
           return Promise.reject(new SyntaxError("Response body is not a valid JSON object/array"));
-        } catch (e) {
+        } catch (_e) { // eslint-disable-line @typescript-eslint/no-unused-vars
           return Promise.reject(new SyntaxError("Invalid JSON"));
         }
       }

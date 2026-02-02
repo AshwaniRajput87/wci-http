@@ -1,5 +1,5 @@
 import { HTTP_METHODS } from "../constants/httpMethods";
-import type { HttpMethod, HttpRequest, HttpClient, HttpRequestOptions } from "../types/http.types";
+import type { HttpMethod, HttpRequest } from "../types/http.types";
 import { ErrorCode, createErrorCodeFactory } from '../errors/createErrorCode';
 import { ERROR_DOMAINS } from "../errors/errorDomains";
 
