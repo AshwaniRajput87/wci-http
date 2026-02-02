@@ -1,6 +1,11 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
-import { httpClient } from '../../src/client/httpClient' // Import the actual httpClient
+import { coreHttpClient } from '../../src/client/core'
+
+// Mock environment utility as well
+vi.mock('../../src/utils/getBaseUrlFromEnv', () => ({
+  getBaseUrlFromEnv: vi.fn(() => undefined),
+}))
 
 // Mock coreHttpClient instead since WciHttp.request() calls coreHttpClient directly
 vi.mock('../../src/client/core', () => ({
@@ -15,12 +20,9 @@ vi.mock('../../src/client/core', () => ({
 }))
 
 describe('WciHttp', () => {
-  // Cast httpClient to MockedFunction for easier assertion
-  const mockedHttpClient = httpClient as unknown as vi.Mock
-
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedHttpClient.mockClear() // Clear mock calls specific to httpClient
+    vi.clearAllMocks() // Clear all mocks
   })
 
   test('create() should return a new instance that uses merged config', async () => {
@@ -34,11 +36,11 @@ describe('WciHttp', () => {
 
     await newInstance.get('/test')
 
-    expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-    expect(mockedHttpClient).toHaveBeenCalledWith(
+    expect(coreHttpClient).toHaveBeenCalledTimes(1)
+    expect(coreHttpClient).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
-        method: 'get',
+        method: 'GET',
         baseURL: 'https://api.example.com',
         headers: expect.objectContaining({ 'X-Base': 'true', 'X-New': 'true' }),
       })
@@ -51,11 +53,11 @@ describe('WciHttp', () => {
 
     await instance.get('/test')
 
-    expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-    expect(mockedHttpClient).toHaveBeenCalledWith(
+    expect(coreHttpClient).toHaveBeenCalledTimes(1)
+    expect(coreHttpClient).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
-        method: 'get',
+        method: 'GET',
         baseURL: 'https://api.example.com',
       })
     )
@@ -68,11 +70,11 @@ describe('WciHttp', () => {
 
     await instance.post('/test', postData)
 
-    expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-    expect(mockedHttpClient).toHaveBeenCalledWith(
+    expect(coreHttpClient).toHaveBeenCalledTimes(1)
+    expect(coreHttpClient).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
-        method: 'post',
+        method: 'POST',
         data: postData, // Expect data property now
         baseURL: 'https://api.example.com',
         headers: {},
@@ -98,11 +100,11 @@ describe('WciHttp', () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com')
       const instance = new WciHttp({ baseURL: 'https://config-url.com' })
       await instance.get('/test')
-      expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-      expect(mockedHttpClient).toHaveBeenCalledWith(
+      expect(coreHttpClient).toHaveBeenCalledTimes(1)
+      expect(coreHttpClient).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test',
-          method: 'get',
+          method: 'GET',
           baseURL: 'https://config-url.com',
           headers: {},
           responseType: 'json',
@@ -122,11 +124,11 @@ describe('WciHttp', () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com')
       const instance = new WciHttp({})
       await instance.get('/test')
-      expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-      expect(mockedHttpClient).toHaveBeenCalledWith(
+      expect(coreHttpClient).toHaveBeenCalledTimes(1)
+      expect(coreHttpClient).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test',
-          method: 'get',
+          method: 'GET',
           baseURL: 'https://env-url.com',
           headers: {},
           responseType: 'json',
@@ -147,10 +149,11 @@ describe('WciHttp', () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', undefined)
       const instance = new WciHttp({})
       await instance.get('/test')
-      expect(mockedHttpClient).toHaveBeenCalledTimes(1)
-      const callArgs = mockedHttpClient.mock.calls[0][0] // Get the first argument of the first call
+      expect(coreHttpClient).toHaveBeenCalledTimes(1)
+      const callArgs = coreHttpClient.mock.calls[0][0] // Get the first argument of the first call
       expect(callArgs.url).toBe('/test')
-      expect(callArgs.method).toBe('get')
+      expect(callArgs.method).toBe('GET')
+      // baseURL should be undefined or at least not explicitly set
       expect(callArgs.baseURL).toBeUndefined()
     })
   })

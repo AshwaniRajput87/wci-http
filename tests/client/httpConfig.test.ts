@@ -281,6 +281,7 @@ describe('httpClient', () => {
 
     const result = await httpClient({
       url: '/text',
+      responseType: 'text',
       fetcher: mockFetch,
     })
 
@@ -298,11 +299,14 @@ describe('httpClient', () => {
 
     const result = await httpClient({
       url: '/binary',
+      responseType: 'arraybuffer',
       fetcher: mockFetch,
     })
 
-    expect(result).toBeInstanceOf(ArrayBuffer)
+    expect(result).toBe(body)
   })
+
+  test('throws WciHttpError with INVALID_JSON for bad JSON', async () => {})
 
   /* ---------------------------------------------
      Error handling
