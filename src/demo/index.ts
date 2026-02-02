@@ -12,6 +12,7 @@ import { run as runInterceptors } from './4-interceptors';
 import { run as runErrorHandling } from './5-error-handling';
 import { run as runCancellationAndTimeouts } from './6-cancellation-and-timeouts';
 import { run as runAdvancedUsage } from './7-advanced-usage';
+import { run as runInstanceCreate } from './instance-create';
 
 // Helper function for consistent section headers
 const printSectionHeader = (title: string) => {
@@ -46,6 +47,9 @@ async function mainDemoOrchestrator() {
 
     printSectionHeader('Demo 7: Advanced Usage');
     await runAdvancedUsage();
+
+    printSectionHeader('Demo 8: Instance Creation');
+    await runInstanceCreate();
 
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');

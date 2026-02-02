@@ -155,3 +155,40 @@ export enum HttpStatusCode {
   SERVICE_UNAVAILABLE = 503,
   GATEWAY_TIMEOUT = 504,
 }
+
+// Define WciHttpConfig as a comprehensive type for instance and request configuration
+export interface WciHttpConfig {
+  url?: string;
+  method?: HttpMethod;
+  headers?: HttpHeaders;
+  body?: unknown;
+  fetcher?: HttpClientFetcher;
+  maxRetries?: number;
+  timeoutMs?: number;
+  baseURL?: string;
+  query?: HttpQuery;
+  responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
+  credentials?: RequestCredentials;
+  logger?: WciLogger;
+  signal?: AbortSignal;
+  validateStatus?: (status: number) => boolean;
+  transformResponse?: Function | Function[];
+
+  // Retry configuration
+  retry?: {
+    attempts: number;
+    delay: number;
+  };
+
+  // Logging configuration
+  logging?: {
+    level: LogLevel;
+    logRequestHeaders: boolean;
+    logResponseHeaders: boolean;
+  };
+
+  // Instance-level interceptors (aligned with HttpRequest)
+  requestInterceptors?: RequestInterceptor[];
+  responseInterceptors?: ResponseInterceptor[];
+}
+

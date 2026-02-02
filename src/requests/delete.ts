@@ -1,17 +1,10 @@
 import { httpClient } from "../client/httpClient";
-import type { HttpClientConfig, HttpRequestOptions } from "../types/http.types";
+import type { WciHttpConfig } from "../types/http.types";
 
 export const del = <T = unknown>(
   url: string,
-  options: HttpRequestOptions = {},
-  instanceConfig: HttpClientConfig = {},
+  config: WciHttpConfig = {},
 ): Promise<T> => {
-  const mergedConfig = {
-    ...instanceConfig,
-    ...options,
-    url,
-    method: "DELETE",
-    headers: { ...instanceConfig.headers, ...options.headers },
-  };
-  return httpClient<T>(mergedConfig);
+  return httpClient.request<T>({ ...config, method: 'delete', url });
 };
+

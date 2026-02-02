@@ -1,33 +1,27 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import * as client from "../../src/client/httpClient";
+import { httpClient } from "../../src/client/httpClient";
 import { get } from "../../src/requests/get";
-import { ApiSuccessResponse } from "../../src/types/success.types";
 
 describe("get request wrapper", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("should call httpClient with GET method and correct URL", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi
-      .spyOn(client, "httpClient")
-      .mockResolvedValue(mockApiResponse);
+  test("should call httpClient.request with GET method and correct URL", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
 
-    const result = await get("/users");
+    await get("/users");
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/users",
-        method: "GET",
+        method: "get",
       }),
     );
-    expect(result).toEqual(mockApiResponse);
   });
 
-  test("should forward additional configuration (headers, params)", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+  test("should forward additional configuration (headers, query)", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
     const config = {
       headers: { Authorization: "Bearer token" },
       query: { id: "123" },
@@ -39,7 +33,7 @@ describe("get request wrapper", () => {
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/resource",
-        method: "GET",
+        method: "get",
         headers: config.headers,
         query: config.query,
         timeoutMs: 5000,
@@ -53,9 +47,8 @@ describe("get request wrapper", () => {
       name: string;
     }
     const mockUserData: User = { id: 1, name: "John Doe" };
-    const mockApiResponse: ApiSuccessResponse<User> = { success: true, message: "Fetched", data: mockUserData };
 
-    vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse.data);
+    vi.spyOn(httpClient, "request").mockResolvedValue(mockUserData);
 
     const result: User = await get<User>("/user/1");
 
@@ -64,8 +57,8 @@ describe("get request wrapper", () => {
     expect(result.id).toBe(1);
   });
 
-  test("should propagate errors from httpClient", async () => {
-    vi.spyOn(client, "httpClient").mockRejectedValue(
+  test("should propagate errors from httpClient.request", async () => {
+    vi.spyOn(httpClient, "request").mockRejectedValue(
       new Error("Network Failure"),
     );
 
@@ -73,14 +66,13 @@ describe("get request wrapper", () => {
   });
 
   test("should not allow overriding the GET method", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
     // @ts-expect-error - testing that users can't pass 'method' to get()
     await get("/test", { method: "POST" });
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "GET",
+        method: "get",
       }),
     );
   });

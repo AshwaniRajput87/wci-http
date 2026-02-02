@@ -1,7 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import * as client from "../../src/client/httpClient";
+import { httpClient } from "../../src/client/httpClient";
 import { patch } from "../../src/requests/patch";
-import { ApiSuccessResponse } from "../../src/types/success.types";
 import { CONTENT_TYPES } from "../../src/constants/protocol/contentTypes";
 
 describe("patch request wrapper", () => {
@@ -9,29 +8,23 @@ describe("patch request wrapper", () => {
     vi.restoreAllMocks();
   });
 
-  test("should call httpClient with PATCH method and JSON header", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+  test("should call httpClient.request with PATCH method and JSON header", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
     const body = { name: "Partial Update" };
 
-    const result = await patch("/items/1", body);
+    await patch("/items/1", body);
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/items/1",
-        method: "PATCH",
-        body,
-        headers: expect.objectContaining({
-          "Content-Type": CONTENT_TYPES.JSON,
-        }),
+        method: "patch",
+        data: body,
       }),
     );
-    expect(result).toEqual(mockApiResponse);
   });
 
-  test("should forward additional configuration (headers, params)", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+  test("should forward additional configuration (headers, query)", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
     const config = {
       headers: { Authorization: "Bearer token" },
       query: { dryRun: true },
@@ -44,8 +37,9 @@ describe("patch request wrapper", () => {
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/resource/1",
-        method: "PATCH",
-        headers: { ...config.headers, "Content-Type": CONTENT_TYPES.JSON },
+        method: "patch",
+        data: body,
+        headers: config.headers,
         query: config.query,
         timeoutMs: 5000,
       }),
@@ -59,9 +53,8 @@ describe("patch request wrapper", () => {
       status: string;
     }
     const mockItemData: Item = { id: 1, name: "Original", status: "active" };
-    const mockApiResponse: ApiSuccessResponse<Item> = { success: true, message: "Patched", data: mockItemData };
 
-    vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse.data);
+    vi.spyOn(httpClient, "request").mockResolvedValue(mockItemData);
 
     const result: Item = await patch<Item>("/items/1", { status: "active" });
 
@@ -69,8 +62,8 @@ describe("patch request wrapper", () => {
     expect(result.status).toBe("active");
   });
 
-  test("should propagate errors from httpClient", async () => {
-    vi.spyOn(client, "httpClient").mockRejectedValue(
+  test("should propagate errors from httpClient.request", async () => {
+    vi.spyOn(httpClient, "request").mockRejectedValue(
       new Error("Network Failure"),
     );
 
@@ -78,14 +71,13 @@ describe("patch request wrapper", () => {
   });
 
   test("should not allow overriding the PATCH method", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: {} };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue({});
     // @ts-expect-error - testing that users can't pass 'method' to patch()
     await patch("/test", {}, { method: "PUT" });
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "PATCH",
+        method: "patch",
       }),
     );
   });

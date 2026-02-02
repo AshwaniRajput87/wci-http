@@ -1,35 +1,11 @@
 import { httpClient } from "../client/httpClient";
-import { HTTP_METHODS } from "../constants/httpMethods";
 
-import type {
-  HttpClientConfig,
-  HttpRequestOptions,
-} from "../types/http.types";
-
-import { resolveBodyAndHeaders } from "../utils/bodyUtils";
+import type { WciHttpConfig } from "../types/http.types";
 
 export const patch = <T = unknown>(
   url: string,
-  body?: unknown,
-  options: HttpRequestOptions = {},
-  instanceConfig: HttpClientConfig = {},
+  data?: any,
+  config: WciHttpConfig = {},
 ): Promise<T> => {
-  const mergedHeaders = {
-    ...(instanceConfig.headers ?? {}),
-    ...(options.headers ?? {}),
-  };
-
-  const finalHeaders = resolveBodyAndHeaders(body, mergedHeaders);
-
-  const mergedConfig = {
-    ...instanceConfig,
-    ...options,
-
-    url,
-    method: HTTP_METHODS.PATCH, 
-    body,
-    headers: finalHeaders,
-  };
-
-  return httpClient<T>(mergedConfig);
+  return httpClient.request<T>({ ...config, method: 'patch', url, data });
 };

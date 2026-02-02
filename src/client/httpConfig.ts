@@ -14,6 +14,7 @@ export const DEFAULT_WCI_HTTP_CONFIG: WciHttpConfig = {
         logRequestHeaders: false,
         logResponseHeaders: false,
     },
-    interceptors: [],
+    requestInterceptors: [],
+    responseInterceptors: [],
     validateStatus: (status: number) => status >= 200 && status < 300,
 };

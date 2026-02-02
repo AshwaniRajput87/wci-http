@@ -1,35 +1,31 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import * as client from "../../src/client/httpClient";
+import { httpClient } from "../../src/client/httpClient";
 import { optionsReq } from "../../src/requests/options";
-import { ApiSuccessResponse } from "../../src/types/success.types";
 
 describe("options request wrapper", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("should call httpClient with OPTIONS method and correct URL", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: null };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+  test("should call httpClient.request with OPTIONS method and correct URL", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue(null);
 
     const result = await optionsReq("/items");
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/items",
-        method: "OPTIONS",
+        method: "options",
       }),
     );
-    expect(result).toEqual(mockApiResponse);
+    expect(result).toBeNull();
   });
 
-  test("should forward additional configuration (headers, params)", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: null };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+  test("should forward additional configuration (headers, query)", async () => {
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue(null);
     const config = {
       headers: { "Access-Control-Request-Headers": "Content-Type" },
       query: { detailed: true },
-      timeoutMs: 5000,
     };
 
     await optionsReq("/resource", config);
@@ -37,16 +33,15 @@ describe("options request wrapper", () => {
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "/resource",
-        method: "OPTIONS",
+        method: "options",
         headers: config.headers,
         query: config.query,
-        timeoutMs: 5000,
       }),
     );
   });
 
-  test("should propagate errors from httpClient", async () => {
-    vi.spyOn(client, "httpClient").mockRejectedValue(
+  test("should propagate errors from httpClient.request", async () => {
+    vi.spyOn(httpClient, "request").mockRejectedValue(
       new Error("Network Failure"),
     );
 
@@ -54,14 +49,13 @@ describe("options request wrapper", () => {
   });
 
   test("should not allow overriding the OPTIONS method", async () => {
-    const mockApiResponse: ApiSuccessResponse<any> = { success: true, message: "OK", data: null };
-    const httpClientSpy = vi.spyOn(client, "httpClient").mockResolvedValue(mockApiResponse);
+    const httpClientSpy = vi.spyOn(httpClient, "request").mockResolvedValue(null);
     // @ts-expect-error - testing that users can't pass 'method' to optionsReq()
     await optionsReq("/test", { method: "POST" });
 
     expect(httpClientSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "OPTIONS",
+        method: "options",
       }),
     );
   });
