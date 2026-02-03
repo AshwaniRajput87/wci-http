@@ -60,6 +60,19 @@ export const coreHttpClient = async <T = unknown>(
       headers: { ...initialRequest.headers },
     };
 
+    const method = (request.method || HTTP_METHODS.GET).toUpperCase();
+
+    // Assign request.data to request.body for methods that typically include a body
+    if (
+      (method === HTTP_METHODS.POST ||
+        method === HTTP_METHODS.PUT ||
+        method === HTTP_METHODS.PATCH) &&
+      request.data !== undefined &&
+      request.body === undefined
+    ) {
+      request.body = request.data;
+    }
+
     try {
       request = await applyRequestInterceptors(request);
 

@@ -7,7 +7,7 @@
 import wciHttp, { httpClient } from '../index';
 import { Post } from './types';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 export async function run(): Promise<void> {
   console.log('--- Demo 1: Basic Usage ---');
@@ -29,7 +29,9 @@ export async function run(): Promise<void> {
       body: 'bar',
       userId: 1,
     };
-    const createdPost = await httpClient.post<Post>(`${API_BASE}/posts`, newPost);
+    const createdPost = await httpClient.post<Post>(`${API_BASE}/posts`, newPost, {
+      headers: { 'Content-Type': 'application/json' },
+    });
     console.log('POST Response Data:', createdPost);
   } catch (error) {
     console.error('POST request failed:', error);
@@ -41,7 +43,9 @@ export async function run(): Promise<void> {
     const updatedPostData = {
       title: 'foo-patched',
     };
-    const patchedPost = await httpClient.patch<Post>(`${API_BASE}/posts/1`, updatedPostData);
+    const patchedPost = await httpClient.patch<Post>(`${API_BASE}/posts/1`, updatedPostData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
     console.log('PATCH Response Data:', patchedPost);
   } catch (error) {
     console.error('PATCH request failed:', error);
@@ -61,7 +65,7 @@ export async function run(): Promise<void> {
   // 4. GET request with responseType: 'arraybuffer' for an image (using instance)
   try {
     console.log("\nFetching an image with responseType: 'arraybuffer'...");
-    const imageBuffer = await wciHttp.get<ArrayBuffer>('https://dummyimage.com/150x150/000/fff', {
+    const imageBuffer = await wciHttp.get<ArrayBuffer>('http://localhost:3000/image/150x150', {
       responseType: 'arraybuffer',
     });
     console.log(`GET Response Data (as ArrayBuffer): received ${imageBuffer.byteLength} bytes.`);

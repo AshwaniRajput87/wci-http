@@ -8,7 +8,7 @@ import wciHttp from '../index';
 import { logHttpError } from './httpErrorLogger';
 import { WciHttpError } from '../errors/WciHttpError';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 export async function run(): Promise<void> {
   console.log('--- Demo 3: Response Handling ---');
@@ -31,7 +31,7 @@ export async function run(): Promise<void> {
   try {
     console.log('\nFetching a text/html response (e.g., a web page)...');
     // Using example.com which typically returns text/html
-    const htmlResponse = await wciHttp.get('https://example.com');
+    const htmlResponse = await wciHttp.get('http://localhost:3000/html', { responseType: 'text' });
     console.log('Detected Response Type (HTML):', typeof htmlResponse);
     console.log('HTML Response Data (starts with):', (htmlResponse as string).substring(0, 100));
   } catch (error) {

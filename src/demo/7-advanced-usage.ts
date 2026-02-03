@@ -5,7 +5,7 @@
 import wciHttp from '../index';
 import { Post, User } from './types'; // Assuming types exist in a local types file
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 /**
  * =================================================================

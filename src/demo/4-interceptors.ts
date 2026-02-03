@@ -7,7 +7,7 @@
 import { WciHttp, RequestInterceptor, ResponseInterceptor } from '../client/WciHttp';
 import { Post } from './types';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 // Custom Request Interceptor: Logs the request and adds a custom header
 const loggingRequestInterceptor: RequestInterceptor = async (request) => {

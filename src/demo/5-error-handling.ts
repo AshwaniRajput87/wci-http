@@ -8,7 +8,7 @@ import wciHttp from '../index';
 import { WciHttpError } from '../errors/WciHttpError';
 import { logHttpError } from './httpErrorLogger';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 export async function run(): Promise<void> {
   console.log('--- Demo 5: Error Handling ---');
@@ -30,10 +30,11 @@ export async function run(): Promise<void> {
     console.log('\n2. Demonstrating graceful handling of incorrect Content-Type...');
     // We request JSON but receive HTML. The client should handle this gracefully
     // by not attempting to parse the HTML as JSON, thus avoiding an error.
-    await wciHttp.get('https://example.com', {
+    await wciHttp.get('http://localhost:3000/html', {
       headers: {
         'Accept': 'application/json',
       },
+      responseType: 'text',
     });
     console.log('✅ Success: Client correctly handled HTML response without throwing an INVALID_JSON error.');
   } catch (error: unknown) {

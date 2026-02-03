@@ -7,7 +7,7 @@
 import { WciHttp } from '../client/WciHttp'; // Import the class to create a new instance
 import { Post } from './types';
 
-const API_BASE = 'https://jsonplaceholder.typicode.com';
+const API_BASE = 'http://localhost:3000';
 
 export async function run(): Promise<void> {
   console.log('--- Demo 2: Config and Headers ---');

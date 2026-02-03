@@ -9,7 +9,7 @@ import { WciHttpError } from '../errors/WciHttpError';
 import { logHttpError } from './httpErrorLogger';
 
 
-const HTTPBIN_BASE = 'https://httpbin.org';
+const HTTPBIN_BASE = 'http://localhost:3000';
 
 export async function run(): Promise<void> {
   console.log('--- Demo 6: Cancellation and Timeouts ---');
