@@ -11,11 +11,13 @@ No raw errors are ever exposed to consumers.
 ## Why this exists
 
 In distributed systems:
+
 - Errors must be machine-readable
 - Errors must be traceable across services
 - Errors must never change silently
 
 This system guarantees:
+
 - Stable error codes
 - Org-level customization
 - Zero ambiguity for consumers
@@ -25,4 +27,3 @@ This system guarantees:
 ## Error Code Structure
 
 Every error code follows:
-

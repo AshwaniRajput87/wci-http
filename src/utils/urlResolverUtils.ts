@@ -14,9 +14,8 @@
 
 export const resolveUrl = (
   baseURL: string | undefined,
-  url: string
+  url: string,
 ): string => {
-  
   if (/^https?:\/\//i.test(url)) {
     return url;
   }
@@ -25,13 +24,11 @@ export const resolveUrl = (
     return url;
   }
 
- 
   try {
-    const base = baseURL.endsWith('/') ? baseURL : `${baseURL}/`;
-    const path = url.startsWith('/') ? url.slice(1) : url;
+    const base = baseURL.endsWith("/") ? baseURL : `${baseURL}/`;
+    const path = url.startsWith("/") ? url.slice(1) : url;
     return new URL(path, base).toString();
   } catch {
-   
     return `${baseURL}/${url}`.replace(/([^:]\/)\/+/g, "$1");
   }
 };

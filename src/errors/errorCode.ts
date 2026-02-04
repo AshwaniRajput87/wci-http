@@ -13,16 +13,15 @@
  * WCI_HTTP_TIMEOUT
  */
 
-import { HTTP_ERROR_KEYS } from './errorCatalog';
-import { createErrorCodeFactory } from './createErrorCode';
-import { ERROR_DOMAINS } from './errorDomains';
-import { mapValuesAndFreeze } from '../utils/objectUtils';
+import { HTTP_ERROR_KEYS } from "./errorCatalog";
+import { createErrorCodeFactory } from "./createErrorCode";
+import { ERROR_DOMAINS } from "./errorDomains";
+import { mapValuesAndFreeze } from "../utils/objectUtils";
 
-const createErrorCode = createErrorCodeFactory('WCI');
+const createErrorCode = createErrorCodeFactory("WCI");
 
-export const HTTP_ERROR_CODES = mapValuesAndFreeze(
-  HTTP_ERROR_KEYS,
-  (key) => createErrorCode(ERROR_DOMAINS.HTTP, key)
+export const HTTP_ERROR_CODES = mapValuesAndFreeze(HTTP_ERROR_KEYS, (key) =>
+  createErrorCode(ERROR_DOMAINS.HTTP, key),
 );
 
 export type HttpErrorCodes = typeof HTTP_ERROR_CODES;

@@ -5,6 +5,7 @@ Temporary demo layer for validating the `wci-http` library behavior.
 ## Purpose
 
 This folder exists ONLY to:
+
 - Manually test the HTTP client during development
 - Validate error codes, request flow, and configuration
 - Simulate real API usage without external consumers
@@ -29,6 +30,7 @@ This is **NOT part of the public API**.
 
 This folder is **temporary**.
 It MUST be removed once:
+
 - All features are verified
 - Test coverage is complete
 - Library API is stabilized
@@ -36,10 +38,11 @@ It MUST be removed once:
 ## Example Usage
 
 ```ts
-import { createHttpClient } from '../index';
+import { createHttpClient } from "../index";
 
 const client = createHttpClient({
-  errorPrefix: 'DEMO',
+  errorPrefix: "DEMO",
 });
 
-client.get('/todos/1').then(console.log);
+client.get("/todos/1").then(console.log);
+```

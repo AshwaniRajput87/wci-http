@@ -11,12 +11,14 @@ This is not a frontend utility. This is infrastructure code.
 ## Why this library exists
 
 Most HTTP clients:
+
 - Mix transport, business logic, and UI concerns
 - Hide errors behind inconsistent shapes
 - Break when moved across runtimes (Node / Edge / SSR)
 - Become unmaintainable as teams grow
 
 This library exists to provide:
+
 - Deterministic error handling
 - Stable public APIs
 - Zero ambiguity for contributors
@@ -37,4 +39,3 @@ This library exists to provide:
 ---
 
 ## Folder structure (high level)
-

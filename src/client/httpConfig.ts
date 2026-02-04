@@ -1,17 +1,20 @@
-/**
- * Transport-level configuration contract for HTTP client execution.
- *
- * This interface defines immutable request configuration such as
- * base URL resolution, headers, and fetch implementation overrides.
- * It intentionally excludes business, domain, and retry concerns.
- */
-export interface HttpClientConfig {
-  baseURL?: string;
-  headers?: Record<string, string>;
-  timeout?: number;
-  credentials?: RequestCredentials;
-  params?: Record<string, string | number | boolean>;
-  fetcher?: typeof fetch;
-  method?: string;
-  body?: any;
-}
+import { WciHttpConfig } from '../types';
+
+export const DEFAULT_WCI_HTTP_CONFIG: WciHttpConfig = {
+    responseType: 'json',
+    headers: {},
+    timeout: 0, // 0 means no timeout
+    method: 'get',
+    retry: {
+        attempts: 0, // No retries by default
+        delay: 1000, // 1 second delay
+    },
+    logging: {
+        level: 'none',
+        logRequestHeaders: false,
+        logResponseHeaders: false,
+    },
+    requestInterceptors: [],
+    responseInterceptors: [],
+    validateStatus: (status: number) => status >= 200 && status < 300,
+};

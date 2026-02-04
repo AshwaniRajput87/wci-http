@@ -1,39 +1,50 @@
+import { httpClient } from "../client/httpClient";
+import { HTTP_METHODS } from "../constants/httpMethods";
+import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
+
+import type {
+  HttpClientConfig,
+  HttpRequestOptions,
+} from "../types/http.types";
+
 /**
  * Perform an HTTP POST request.
- *
- * Sends JSON payload using the shared httpClient.
- * Automatically applies `Content-Type: application/json`.
  */
-import { httpClient } from '../client/httpClient';
-import type { HttpRequestOptions } from '../types/httpRequestOptionsTypes';
-
 export const post = <T = unknown>(
   url: string,
   body?: unknown,
-  options: HttpRequestOptions = {}
+  options: HttpRequestOptions = {},
+  instanceConfig: HttpClientConfig = {},
 ): Promise<T> => {
-  const headers: Record<string, string> = { ...options.headers };
+  const headers: Record<string, string> = {
+    ...(instanceConfig.headers ?? {}),
+    ...(options.headers ?? {}),
+  };
 
   const isSpecialBody =
-    (typeof FormData !== 'undefined' && body instanceof FormData) ||
-    (typeof Blob !== 'undefined' && body instanceof Blob) ||
-    (typeof ArrayBuffer !== 'undefined' && body instanceof ArrayBuffer) ||
-    (typeof ReadableStream !== 'undefined' && body instanceof ReadableStream);
+    (typeof FormData !== "undefined" && body instanceof FormData) ||
+    (typeof Blob !== "undefined" && body instanceof Blob) ||
+    (typeof ArrayBuffer !== "undefined" && body instanceof ArrayBuffer) ||
+    (typeof ReadableStream !== "undefined" && body instanceof ReadableStream);
 
-  const isUrlEncoded = 
-    typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams;
+  const isUrlEncoded =
+    typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
 
-  if (body !== undefined && !isSpecialBody && !headers['Content-Type']) {
-    headers['Content-Type'] = isUrlEncoded
-      ? 'application/x-www-form-urlencoded'
-      : 'application/json';
+  if (body !== undefined && !isSpecialBody && !headers["Content-Type"]) {
+    headers["Content-Type"] = isUrlEncoded
+      ? CONTENT_TYPES.FORM
+      : CONTENT_TYPES.JSON;
   }
 
-  return httpClient<T>({
-    url,
-    method: 'POST',
-    body,
+  const mergedConfig = {
+    ...instanceConfig,
     ...options,
+
+    url,
+    method: HTTP_METHODS.POST, 
+    body,
     headers,
-  });
+  };
+
+  return httpClient<T>(mergedConfig);
 };

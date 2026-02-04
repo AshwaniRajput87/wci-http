@@ -1,52 +1,34 @@
-/**
- * Core HTTP execution engine.
- *
- * This function is responsible for performing the actual HTTP request
- * using a fetch-compatible implementation.
- *
- * Responsibilities:
- * - Resolve the final request URL using baseURL (if provided)
- * - Delegate execution to the provided fetcher
- * - Return parsed response data in a typed-safe manner
- *
- * Non-responsibilities:
- * - Business logic
- * - Retry handling
- * - Error classification
- * - Response domain validation
- *
- * Design guarantees:
- * - Side-effect free
- * - Framework-agnostic (Node, Edge, SSR)
- * - Safe for test environments via fetcher override
- *
- * This function must remain transport-only and immutable.
- */
-import type { HttpClientConfig } from './httpConfig';
-import { resolveUrl } from '../utils/urlResolverUtils';
+import { WciHttp } from './WciHttp'
+import type { WciHttpConfig } from '../types/http.types'
 
-export const httpClient = async <T = unknown>(
-  config: HttpClientConfig & { url: string }
-): Promise<T> => {
-  const {
-    url,
-    baseURL,
-    method = 'GET',
-    headers,
-    body,
-    fetcher = fetch,
-    ...rest
-  } = config;
+// Create the default instance
+const httpClientInstance = new WciHttp()
 
-  const response = await fetcher(
-    resolveUrl(baseURL, url),
-    {
-      ...rest,
-      method: method.toUpperCase(),
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    }
-  );
+// Create a function that can be called directly and also has all the instance methods
+const httpClient = Object.assign(
+  (config: WciHttpConfig) => httpClientInstance.request(config),
+  {
+    // Method shortcuts
+    get: (url: string, config?: WciHttpConfig) =>
+      httpClientInstance.get(url, config),
+    post: (url: string, data?: any, config?: WciHttpConfig) =>
+      httpClientInstance.post(url, data, config),
+    put: (url: string, data?: any, config?: WciHttpConfig) =>
+      httpClientInstance.put(url, data, config),
+    patch: (url: string, data?: any, config?: WciHttpConfig) =>
+      httpClientInstance.patch(url, data, config),
+    delete: (url: string, config?: WciHttpConfig) =>
+      httpClientInstance.delete(url, config),
+    head: (url: string, config?: WciHttpConfig) =>
+      httpClientInstance.head(url, config),
+    options: (url: string, config?: WciHttpConfig) =>
+      httpClientInstance.options(url, config),
+    request: (config: WciHttpConfig) => httpClientInstance.request(config),
+    // Instance properties
+    config: httpClientInstance.config,
+    interceptors: httpClientInstance.interceptors,
+    create: (config?: WciHttpConfig) => httpClientInstance.create(config),
+  }
+)
 
-  return response.json() as Promise<T>;
-};
+export { httpClient }

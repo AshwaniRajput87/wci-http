@@ -3,6 +3,7 @@
 This folder contains the **core request execution engine**.
 
 It is intentionally:
+
 - Minimal
 - Immutable
 - Transport-focused
@@ -25,12 +26,14 @@ No business logic lives here.
 ## What this client is NOT
 
 This client does **not**:
+
 - Retry requests automatically
 - Handle auth refresh
 - Parse domain-specific responses
 - Mutate global state
 
 Those concerns belong to:
+
 - Interceptors
 - Retry policies
 - Consumer layers
@@ -46,6 +49,7 @@ The HTTP client is **immutable by design**.
 - Each request is independent
 
 This guarantees:
+
 - Thread safety
 - SSR compatibility
 - Edge safety
