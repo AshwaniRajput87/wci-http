@@ -1,14 +1,2 @@
-import { HttpRequest } from "../types/http.types";
-
-export const applyResponseInterceptors = async (
-  response: Response,
-  request: HttpRequest,
-): Promise<Response> => {
-  let current = response;
-
-  for (const interceptor of request.responseInterceptors ?? []) {
-    current = await Promise.resolve(interceptor(current, request));
-  }
-
-  return current;
-};
+// This file is deprecated and no longer used.
+// Interceptor logic is now handled in /src/client/core.ts

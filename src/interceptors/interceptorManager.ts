@@ -1,38 +1,47 @@
-export interface Interceptor<T> {
-  fulfilled: (value: T) => T | Promise<T>
-  rejected?: (error: any) => any
+import { WciHttpConfig } from '../types/http.types';
+export interface Interceptor<V> {
+  fulfilled?: (value: V) => V | Promise<V>;
+  rejected?: (error: any) => any;
+  runWhen?: (config: WciHttpConfig) => boolean;
 }
 
-export class InterceptorManager<T> {
-  private interceptors: (Interceptor<T> | null)[] = []
+export class InterceptorManager<V> {
+  private handlers: (Interceptor<V> | null)[] = [];
 
   public use(
-    fulfilled: (value: T) => T | Promise<T>,
-    rejected?: (error: any) => any
+    fulfilled?: (value: V) => V | Promise<V>,
+    rejected?: (error: any) => any,
+    runWhen?: (config: WciHttpConfig) => boolean,
   ): number {
-    this.interceptors.push({
+    this.handlers.push({
       fulfilled,
       rejected,
-    })
-    return this.interceptors.length - 1
+      runWhen,
+    });
+    return this.handlers.length - 1;
   }
 
   public eject(id: number): void {
-    if (this.interceptors[id]) {
-      this.interceptors[id] = null
+    if (this.handlers[id]) {
+      this.handlers[id] = null;
     }
   }
 
-  public forEach(fn: (interceptor: Interceptor<T>) => void): void {
-    this.interceptors.forEach((interceptor) => {
-      if (interceptor) {
-        fn(interceptor)
+  public forEach(
+    fn: (interceptor: Interceptor<V>) => void,
+  ): void {
+    this.handlers.forEach((handler) => {
+      if (handler) {
+        fn(handler);
       }
-    })
+    });
+  }
+
+  public getHandlers(): (Interceptor<V> | null)[] {
+    return this.handlers;
   }
 
   public count(): number {
-    return this.interceptors.filter((interceptor) => interceptor !== null)
-      .length
+    return this.handlers.filter((handler) => handler !== null).length;
   }
 }

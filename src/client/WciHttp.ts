@@ -1,108 +1,129 @@
 import {
   WciHttpConfig,
-  HttpRequest,
+  HttpResponse,
   RequestInterceptor,
   ResponseInterceptor,
-} from '../types/http.types'
-import { coreHttpClient } from './core'
-import { deepMerge } from '../utils/mergeConfig'
-import { DEFAULT_WCI_HTTP_CONFIG } from './httpConfig'
-import { InterceptorManager } from '../interceptors/interceptorManager'
-import { HTTP_METHODS } from '../constants/httpMethods'
+} from '../types/http.types';
+import { dispatchRequest } from './dispatchRequest';
+import { deepMerge } from '../utils/mergeConfig';
+import { DEFAULT_WCI_HTTP_CONFIG } from './httpConfig';
+import { InterceptorManager } from '../interceptors/interceptorManager';
+import { HTTP_METHODS } from '../constants/httpMethods';
 
 export class WciHttp {
-  public config: WciHttpConfig
+  public config: WciHttpConfig;
   public interceptors: {
-    request: InterceptorManager<RequestInterceptor>
-    response: InterceptorManager<ResponseInterceptor>
-  }
+    request: InterceptorManager<WciHttpConfig>;
+    response: InterceptorManager<HttpResponse>;
+  };
 
   constructor(config?: WciHttpConfig) {
-    this.config = deepMerge(DEFAULT_WCI_HTTP_CONFIG, config)
+    this.config = deepMerge(DEFAULT_WCI_HTTP_CONFIG, config);
     this.interceptors = {
-      request: new InterceptorManager<RequestInterceptor>(),
-      response: new InterceptorManager<ResponseInterceptor>(),
-    }
+      request: new InterceptorManager<WciHttpConfig>(),
+      response: new InterceptorManager<HttpResponse>(),
+    };
   }
 
   public static create(config?: WciHttpConfig): WciHttp {
-    return new WciHttp(config)
+    return new WciHttp(config);
   }
 
   public create(config?: WciHttpConfig): WciHttp {
-    return new WciHttp(deepMerge(this.config, config))
+    return new WciHttp(deepMerge(this.config, config));
   }
 
-  public async request<T = unknown>(requestConfig: WciHttpConfig): Promise<T> {
-    const finalConfig = deepMerge(this.config, requestConfig) as HttpRequest
+  public request<T = any>(
+    requestConfig: WciHttpConfig,
+  ): Promise<HttpResponse<T>> {
+    const mergedConfig = deepMerge(this.config, requestConfig);
 
-    const requestInterceptors: RequestInterceptor[] = []
-    this.interceptors.request.forEach((interceptor) => {
-      requestInterceptors.push(interceptor.fulfilled)
-    })
-    if (requestConfig.requestInterceptors) {
-      requestInterceptors.push(...requestConfig.requestInterceptors)
+    const chain: any[] = [dispatchRequest, undefined];
+
+    try {
+      this.interceptors.request.getHandlers().forEach((interceptor) => {
+        if (interceptor) {
+          const run =
+            !interceptor.runWhen || interceptor.runWhen(mergedConfig);
+          chain.unshift(
+            run ? interceptor.fulfilled : undefined,
+            run ? interceptor.rejected : undefined,
+          );
+        }
+      });
+
+      this.interceptors.response.getHandlers().forEach((interceptor) => {
+        if (interceptor) {
+          const run =
+            !interceptor.runWhen || interceptor.runWhen(mergedConfig);
+          chain.push(
+            run ? interceptor.fulfilled : undefined,
+            run ? interceptor.rejected : undefined,
+          );
+        }
+      });
+    } catch (error) {
+      return Promise.reject(error);
     }
-    finalConfig.requestInterceptors = requestInterceptors
 
-    const responseInterceptors: ResponseInterceptor[] = []
-    this.interceptors.response.forEach((interceptor) => {
-      responseInterceptors.push(interceptor.fulfilled)
-    })
-    if (requestConfig.responseInterceptors) {
-      responseInterceptors.push(...requestConfig.responseInterceptors)
+    let promise = Promise.resolve(mergedConfig);
+
+    while (chain.length) {
+      promise = promise.then(chain.shift(), chain.shift());
     }
-    finalConfig.responseInterceptors = responseInterceptors
 
-    return coreHttpClient<T>(finalConfig)
+    return promise as Promise<HttpResponse<T>>;
   }
 
-  public get<T = unknown>(url: string, config: WciHttpConfig = {}): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.GET, url })
+  public get<T = any>(
+    url: string,
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.GET, url });
   }
 
-  public post<T = unknown>(
+  public post<T = any>(
     url: string,
     data?: any,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.POST, url, data })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.POST, url, data });
   }
 
-  public put<T = unknown>(
+  public put<T = any>(
     url: string,
     data?: any,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.PUT, url, data })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.PUT, url, data });
   }
 
-  public patch<T = unknown>(
+  public patch<T = any>(
     url: string,
     data?: any,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.PATCH, url, data })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.PATCH, url, data });
   }
 
-  public delete<T = unknown>(
+  public delete<T = any>(
     url: string,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.DELETE, url })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.DELETE, url });
   }
 
-  public head<T = unknown>(
+  public head<T = any>(
     url: string,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.HEAD, url })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.HEAD, url });
   }
 
-  public options<T = unknown>(
+  public options<T = any>(
     url: string,
-    config: WciHttpConfig = {}
-  ): Promise<T> {
-    return this.request<T>({ ...config, method: HTTP_METHODS.OPTIONS, url })
+    config: WciHttpConfig = {},
+  ): Promise<HttpResponse<T>> {
+    return this.request<T>({ ...config, method: HTTP_METHODS.OPTIONS, url });
   }
 }

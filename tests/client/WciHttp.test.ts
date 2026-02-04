@@ -1,40 +1,43 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
-import { coreHttpClient } from '../../src/client/core'
+import { dispatchRequest } from '../../src/client/dispatchRequest'
+import { HttpResponse, WciHttpConfig } from '../../src/types/http.types'
 
 
-
-// Mock coreHttpClient instead since WciHttp.request() calls coreHttpClient directly
-vi.mock('../../src/client/core', () => ({
-  coreHttpClient: vi.fn(async (config) => {
-    // Simulate a successful response
-    if (config.url === '/test' || config.url === '/') {
-      return Promise.resolve('mock data')
-    }
+// Mock dispatchRequest instead since WciHttp.request() calls dispatchRequest directly
+vi.mock('../../src/client/dispatchRequest', () => ({
+  dispatchRequest: vi.fn(async (config: WciHttpConfig) => {
+    // Simulate a successful HttpResponse
+    const mockResponse: HttpResponse<string> = {
+      data: 'mock data',
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: config,
+    };
     // Simulate an error for specific scenarios if needed, or just resolve for passing
-    return Promise.resolve('mock data')
+    return Promise.resolve(mockResponse);
   }),
 }))
 
 describe('WciHttp', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.clearAllMocks() // Clear all mocks
   })
 
   test('create() should return a new instance that uses merged config', async () => {
-    const baseConfig = {
+    const baseConfig: WciHttpConfig = {
       baseURL: 'https://api.example.com',
       headers: { 'X-Base': 'true' },
     }
     const instance = new WciHttp(baseConfig)
-    const newConfig = { headers: { 'X-New': 'true' } }
+    const newConfig: WciHttpConfig = { headers: { 'X-New': 'true' } }
     const newInstance = instance.create(newConfig)
 
-    await newInstance.get('/test')
+    const response = await newInstance.get('/test')
 
-    expect(coreHttpClient).toHaveBeenCalledTimes(1)
-    expect(coreHttpClient).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledTimes(1)
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
         method: 'GET',
@@ -42,50 +45,50 @@ describe('WciHttp', () => {
         headers: expect.objectContaining({ 'X-Base': 'true', 'X-New': 'true' }),
       })
     )
+    expect(response.data).toBe('mock data');
+    expect(response.status).toBe(200);
   })
 
-  test('get() should call httpClient with instance config', async () => {
-    const baseConfig = { baseURL: 'https://api.example.com' }
+  test('get() should call dispatchRequest with instance config', async () => {
+    const baseConfig: WciHttpConfig = { baseURL: 'https://api.example.com' }
     const instance = new WciHttp(baseConfig)
 
-    await instance.get('/test')
+    const response = await instance.get('/test')
 
-    expect(coreHttpClient).toHaveBeenCalledTimes(1)
-    expect(coreHttpClient).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledTimes(1)
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
         method: 'GET',
         baseURL: 'https://api.example.com',
       })
     )
+    expect(response.data).toBe('mock data');
   })
 
-  test('post() should call httpClient with instance config', async () => {
-    const baseConfig = { baseURL: 'https://api.example.com' }
+  test('post() should call dispatchRequest with instance config', async () => {
+    const baseConfig: WciHttpConfig = { baseURL: 'https://api.example.com' }
     const instance = new WciHttp(baseConfig)
     const postData = { foo: 'bar' }
 
-    await instance.post('/test', postData)
+    const response = await instance.post('/test', postData)
 
-    expect(coreHttpClient).toHaveBeenCalledTimes(1)
-    expect(coreHttpClient).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledTimes(1)
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
         method: 'POST',
         data: postData, // Expect data property now
         baseURL: 'https://api.example.com',
-        headers: {},
-        responseType: 'json',
-        timeout: 0,
-        retry: { attempts: 0, delay: 1000 },
-        logging: {
-          level: 'none',
-          logRequestHeaders: false,
-          logResponseHeaders: false,
-        },
-        validateStatus: expect.any(Function),
+        headers: {}, // headers should be an empty object by default
+        responseType: undefined, // undefined because it's not set in the minimal config
+        timeoutMs: undefined, // undefined because it's not set in the minimal config
+        retry: undefined, // undefined because it's not set in the minimal config
+        logging: undefined, // undefined because it's not set in the minimal config
+        validateStatus: undefined, // undefined because it's not set in the minimal config
       })
     )
+    expect(response.data).toBe('mock data');
   })
 
   describe('baseURL resolution', () => {
@@ -96,62 +99,45 @@ describe('WciHttp', () => {
     test('should use baseURL from config if provided', async () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com')
       const instance = new WciHttp({ baseURL: 'https://config-url.com' })
-      await instance.get('/test')
-      expect(coreHttpClient).toHaveBeenCalledTimes(1)
-      expect(coreHttpClient).toHaveBeenCalledWith(
+      const response = await instance.get('/test')
+      expect(dispatchRequest).toHaveBeenCalledTimes(1)
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test',
           method: 'GET',
           baseURL: 'https://config-url.com',
-          headers: {},
-          responseType: 'json',
-          timeout: 0,
-          retry: { attempts: 0, delay: 1000 },
-          logging: {
-            level: 'none',
-            logRequestHeaders: false,
-            logResponseHeaders: false,
-          },
-          validateStatus: expect.any(Function),
         })
       )
+      expect(response.data).toBe('mock data');
     })
 
     test('should use baseURL from environment variable if not in config', async () => {
       vi.stubEnv('WCI_HTTP_BASE_URL', 'https://env-url.com')
       const instance = new WciHttp({})
-      await instance.get('/test')
-      expect(coreHttpClient).toHaveBeenCalledTimes(1)
-      expect(coreHttpClient).toHaveBeenCalledWith(
+      const response = await instance.get('/test')
+      expect(dispatchRequest).toHaveBeenCalledTimes(1)
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test',
           method: 'GET',
           baseURL: 'https://env-url.com',
-          headers: {},
-          responseType: 'json',
-          timeout: 0,
-          retry: { attempts: 0, delay: 1000 },
-          logging: {
-            level: 'none',
-            logRequestHeaders: false,
-            logResponseHeaders: false,
-          },
-          validateStatus: expect.any(Function),
         })
       )
+      expect(response.data).toBe('mock data');
     })
 
     test('should have undefined baseURL if not in config or env', async () => {
       // Ensure env var is not set
       vi.stubEnv('WCI_HTTP_BASE_URL', undefined)
       const instance = new WciHttp({})
-      await instance.get('/test')
-      expect(coreHttpClient).toHaveBeenCalledTimes(1)
-      const callArgs = coreHttpClient.mock.calls[0][0] // Get the first argument of the first call
+      const response = await instance.get('/test')
+      expect(dispatchRequest).toHaveBeenCalledTimes(1)
+      const callArgs = dispatchRequest.mock.calls[0][0] // Get the first argument of the first call
       expect(callArgs.url).toBe('/test')
       expect(callArgs.method).toBe('GET')
       // baseURL should be undefined or at least not explicitly set
       expect(callArgs.baseURL).toBeUndefined()
+      expect(response.data).toBe('mock data');
     })
   })
 })

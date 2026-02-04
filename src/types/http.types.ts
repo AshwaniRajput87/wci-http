@@ -12,6 +12,7 @@
 
 import { HTTP_METHODS } from "../constants/httpMethods";
 import { LogLevel } from "./loggingTypes";
+import { InterceptorManager } from "../interceptors/interceptorManager";
 
 
 export type HttpMethod =
@@ -61,6 +62,7 @@ export interface HttpRequest {
   method?: HttpMethod;
   headers?: HttpHeaders;
   body?: unknown;
+  data?: unknown;
   fetcher?: HttpClientFetcher;
   maxRetries?: number;
   timeoutMs?: number;
@@ -70,8 +72,6 @@ export interface HttpRequest {
   credentials?: RequestCredentials;
   logger?: WciLogger;
   signal?: AbortSignal;
-  requestInterceptors?: RequestInterceptor[];
-  responseInterceptors?: ResponseInterceptor[];
   retry?: boolean;
   retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
@@ -96,10 +96,13 @@ export interface HttpClientConfig {
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
 }
 
-export type HttpResponse<T> = {
+export type HttpResponse<T = any> = {
   data: T;
   status: number;
+  statusText: string;
   headers: HttpHeaders;
+  config: WciHttpConfig;
+  request?: any;
 };
 
 export type HttpClientFetcher = (
@@ -107,14 +110,21 @@ export type HttpClientFetcher = (
   init?: RequestInit,
 ) => Promise<Response>;
 
-export type RequestInterceptor = (
-  request: HttpRequest,
-) => HttpRequest | Promise<HttpRequest>;
+export interface RequestInterceptor {
+  fulfilled?: (
+    config: WciHttpConfig,
+  ) => WciHttpConfig | Promise<WciHttpConfig>;
+  rejected?: (error: any) => any;
+  runWhen?: (config: WciHttpConfig) => boolean;
+}
 
-export type ResponseInterceptor = (
-  response: Response,
-  request: HttpRequest,
-) => Response | Promise<Response>;
+export interface ResponseInterceptor {
+  fulfilled?: (
+    response: HttpResponse,
+  ) => HttpResponse | Promise<HttpResponse>;
+  rejected?: (error: any) => any;
+  runWhen?: (config: WciHttpConfig) => boolean;
+}
 
 
 export enum HttpStatusCode {
@@ -162,6 +172,7 @@ export interface WciHttpConfig {
   method?: HttpMethod;
   headers?: HttpHeaders;
   body?: unknown;
+  data?: unknown;
   fetcher?: HttpClientFetcher;
   maxRetries?: number;
   timeoutMs?: number;
@@ -187,8 +198,9 @@ export interface WciHttpConfig {
     logResponseHeaders: boolean;
   };
 
-  // Instance-level interceptors (aligned with HttpRequest)
-  requestInterceptors?: RequestInterceptor[];
-  responseInterceptors?: ResponseInterceptor[];
+  interceptors?: {
+    request: InterceptorManager<WciHttpConfig>;
+    response: InterceptorManager<HttpResponse>;
+  };
 }
 
