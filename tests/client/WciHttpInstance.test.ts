@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
 import { httpClient } from '../../src/client/httpClient'
 import { DEFAULT_WCI_HTTP_CONFIG } from '../../src/client/httpConfig'
-import * as core from '../../src/client/core'
+import { dispatchRequest } from '../../src/client/dispatchRequest'
+
+vi.mock('../../src/client/dispatchRequest', () => ({
+  dispatchRequest: vi.fn().mockResolvedValue({ data: 'mock data' }),
+}))
 
 describe('WciHttp create', () => {
   it('should create a new instance with a separate config', () => {
@@ -55,13 +59,9 @@ describe('WciHttp create', () => {
       headers: { 'X-Instance': 'true' },
     })
 
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await instance.request({ headers: { 'X-Request': 'true' } })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: expect.objectContaining({
           'X-Instance': 'true',
@@ -75,12 +75,9 @@ describe('WciHttp create', () => {
     const instance = WciHttp.create({ baseURL: 'https://instance.com' })
     const requestConfig = { baseURL: 'https://request.com' }
 
-    const coreHttpClient = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
     await instance.get('/test', requestConfig)
 
-    expect(coreHttpClient).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL: 'https://request.com',
       })

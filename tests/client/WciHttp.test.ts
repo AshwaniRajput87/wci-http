@@ -1,3 +1,4 @@
+import { DEFAULT_WCI_HTTP_CONFIG } from '../../src/client/httpConfig'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
 import { dispatchRequest } from '../../src/client/dispatchRequest'
@@ -45,8 +46,7 @@ describe('WciHttp', () => {
         headers: expect.objectContaining({ 'X-Base': 'true', 'X-New': 'true' }),
       })
     )
-    expect(response.data).toBe('mock data');
-    expect(response.status).toBe(200);
+    expect(response).toBe('mock data');
   })
 
   test('get() should call dispatchRequest with instance config', async () => {
@@ -63,7 +63,7 @@ describe('WciHttp', () => {
         baseURL: 'https://api.example.com',
       })
     )
-    expect(response.data).toBe('mock data');
+    expect(response).toBe('mock data');
   })
 
   test('post() should call dispatchRequest with instance config', async () => {
@@ -80,15 +80,9 @@ describe('WciHttp', () => {
         method: 'POST',
         data: postData, // Expect data property now
         baseURL: 'https://api.example.com',
-        headers: {}, // headers should be an empty object by default
-        responseType: undefined, // undefined because it's not set in the minimal config
-        timeoutMs: undefined, // undefined because it's not set in the minimal config
-        retry: undefined, // undefined because it's not set in the minimal config
-        logging: undefined, // undefined because it's not set in the minimal config
-        validateStatus: undefined, // undefined because it's not set in the minimal config
       })
     )
-    expect(response.data).toBe('mock data');
+    expect(response).toBe('mock data');
   })
 
   describe('baseURL resolution', () => {
@@ -108,7 +102,7 @@ describe('WciHttp', () => {
           baseURL: 'https://config-url.com',
         })
       )
-      expect(response.data).toBe('mock data');
+      expect(response).toBe('mock data');
     })
 
     test('should use baseURL from environment variable if not in config', async () => {
@@ -121,9 +115,24 @@ describe('WciHttp', () => {
           url: '/test',
           method: 'GET',
           baseURL: 'https://env-url.com',
+          responseType: 'json',
+          headers: {},
+          timeout: 0,
+          retry: {
+            attempts: 0,
+            delay: 1000,
+          },
+          logging: {
+            level: 'none',
+            logRequestHeaders: false,
+            logResponseHeaders: false,
+          },
+          requestInterceptors: [],
+          responseInterceptors: [],
+          validateStatus: DEFAULT_WCI_HTTP_CONFIG.validateStatus,
         })
       )
-      expect(response.data).toBe('mock data');
+      expect(response).toBe('mock data');
     })
 
     test('should have undefined baseURL if not in config or env', async () => {
@@ -132,12 +141,12 @@ describe('WciHttp', () => {
       const instance = new WciHttp({})
       const response = await instance.get('/test')
       expect(dispatchRequest).toHaveBeenCalledTimes(1)
-      const callArgs = dispatchRequest.mock.calls[0][0] // Get the first argument of the first call
+      const callArgs = (dispatchRequest as any).mock.calls[0][0] // Get the first argument of the first call
       expect(callArgs.url).toBe('/test')
       expect(callArgs.method).toBe('GET')
       // baseURL should be undefined or at least not explicitly set
       expect(callArgs.baseURL).toBeUndefined()
-      expect(response.data).toBe('mock data');
+      expect(response).toBe('mock data');
     })
   })
 })

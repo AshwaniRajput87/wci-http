@@ -33,9 +33,7 @@ export class WciHttp {
     return new WciHttp(deepMerge(this.config, config));
   }
 
-  public request<T = any>(
-    requestConfig: WciHttpConfig,
-  ): Promise<HttpResponse<T>> {
+  public request<T = any>(requestConfig: WciHttpConfig): Promise<T> {
     const mergedConfig = deepMerge(this.config, requestConfig);
 
     const chain: any[] = [dispatchRequest, undefined];
@@ -66,19 +64,34 @@ export class WciHttp {
       return Promise.reject(error);
     }
 
-    let promise = Promise.resolve(mergedConfig);
+    let promise: Promise<any> = Promise.resolve(mergedConfig);
 
     while (chain.length) {
       promise = promise.then(chain.shift(), chain.shift());
     }
 
-    return promise as Promise<HttpResponse<T>>;
+    return promise.then((response) => {
+      // If the response is already transformed data (which can happen with transformResponse),
+      // we should not try to access a .data property that might not exist.
+      // A simple check is to see if it's an HttpResponse-like object.
+      if (
+        response &&
+        typeof response === 'object' &&
+        'data' in response &&
+        'status' in response &&
+        'headers' in response
+      ) {
+        return response.data as T;
+      }
+      // Otherwise, return the response as is (it might be already transformed data)
+      return response as T;
+    });
   }
 
   public get<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.GET, url });
   }
 
@@ -86,7 +99,7 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.POST, url, data });
   }
 
@@ -94,7 +107,7 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.PUT, url, data });
   }
 
@@ -102,28 +115,28 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.PATCH, url, data });
   }
 
   public delete<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.DELETE, url });
   }
 
   public head<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.HEAD, url });
   }
 
   public options<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<HttpResponse<T>> {
+  ): Promise<T> {
     return this.request<T>({ ...config, method: HTTP_METHODS.OPTIONS, url });
   }
 }

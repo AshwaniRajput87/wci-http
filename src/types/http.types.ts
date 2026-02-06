@@ -57,6 +57,18 @@ export interface WciLogger {
 export type HttpHeaders = Record<string, string>;
 export type HttpQuery = Record<string, string | number | boolean>;
 
+export interface ParamsSerializerOptions {
+  indexes?: boolean | null;
+  encode?: boolean;
+  encodeValuesOnly?: boolean;
+  arrayFormat?: "none" | "indices" | "brackets" | "repeat" | "comma";
+}
+
+export type ParamsSerializer = (
+  params: Record<string, any>,
+  options?: ParamsSerializerOptions,
+) => string;
+
 export interface HttpRequest {
   url: string;
   method?: HttpMethod;
@@ -68,6 +80,7 @@ export interface HttpRequest {
   timeoutMs?: number;
   baseURL?: string;
   query?: HttpQuery;
+  params?: Record<string, any>;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
   logger?: WciLogger;
@@ -178,6 +191,8 @@ export interface WciHttpConfig {
   timeoutMs?: number;
   baseURL?: string;
   query?: HttpQuery;
+  params?: Record<string, any>;
+  paramsSerializer?: ParamsSerializer;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
   logger?: WciLogger;

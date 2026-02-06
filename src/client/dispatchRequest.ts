@@ -7,7 +7,7 @@ import {
 } from '../types/http.types';
 import { ErrorCode, createErrorCodeFactory } from '../errors/createErrorCode';
 import { ERROR_DOMAINS } from '../errors/errorDomains';
-import { resolveUrl } from '../utils/urlResolverUtils';
+import { buildURL } from '../utils/buildURL';
 import { sleep } from '../utils/sleepUtils';
 import { serializeRequestBody } from '../utils/bodySerializerzUtils';
 import { parseResponseBody } from '../utils/parseResponseBody';
@@ -40,7 +40,7 @@ export const dispatchRequest = async <T = any>(
   const retry =
     config.retry === true || (config.retry && config.retry.attempts > 0);
 
-  const finalUrl = resolveUrl(config.baseURL, config.url);
+  const finalUrl = buildURL(config.url || '', config.params, config.paramsSerializer, config.baseURL);
 
   const initialRequest: WciHttpConfig = {
     ...config,
@@ -85,6 +85,7 @@ export const dispatchRequest = async <T = any>(
         request.fetcher ?? fetch,
         {
           ...request,
+          url: initialRequest.url,
           headers: finalHeaders,
           method: (request.method ??
             HTTP_METHODS.GET).toUpperCase() as HttpMethod,
