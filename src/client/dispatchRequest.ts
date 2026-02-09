@@ -63,6 +63,23 @@ export const dispatchRequest = async <T = any>(
     return { ...headers };
   };
 
+  const mergeHeadersCaseInsensitive = (
+    base: Record<string, string>,
+    extra: Record<string, string>,
+  ): Record<string, string> => {
+    const merged = { ...base };
+    for (const [key, value] of Object.entries(extra || {})) {
+      const existingKey = Object.keys(merged).find(
+        (k) => k.toLowerCase() === key.toLowerCase(),
+      );
+      if (existingKey) {
+        delete merged[existingKey];
+      }
+      merged[key] = value;
+    }
+    return merged;
+  };
+
   let requestBody: unknown = config.body;
   let requestHeaders: Record<string, string> = normalizeHeaders(config.headers);
 
@@ -91,12 +108,16 @@ export const dispatchRequest = async <T = any>(
   // Step 4.6: Serialize request body
   const serialized = serializeRequestBody({ body: requestBody, headers: requestHeaders, responseType: config.responseType } as any);
   requestBody = serialized.body;
-  requestHeaders = { ...requestHeaders, ...serialized.headers };
-  // Ensure lower-case content-type is available for consumers expecting normalized headers
-  const contentType = requestHeaders['Content-Type'] || requestHeaders['content-type'];
-  if (contentType) {
-    requestHeaders['Content-Type'] = contentType;
-    requestHeaders['content-type'] = contentType;
+  requestHeaders = mergeHeadersCaseInsensitive(
+    requestHeaders,
+    normalizeHeaders(serialized.headers),
+  );
+  // Ensure canonical lower-case content-type alongside existing casing for tests and servers
+  const ctKey = Object.keys(requestHeaders).find(k => k.toLowerCase() === 'content-type');
+  if (ctKey) {
+    const ctVal = requestHeaders[ctKey];
+    if (!requestHeaders['content-type']) requestHeaders['content-type'] = ctVal;
+    if (!requestHeaders['Content-Type']) requestHeaders['Content-Type'] = ctVal;
   }
 
   // Preserve transformResponse for post-adapter processing; avoid double-apply inside adapter
@@ -236,7 +257,8 @@ export const dispatchRequest = async <T = any>(
     responseData !== undefined &&
     typeof responseData === 'string' &&
     adapterResponse.headers &&
-    adapterResponse.headers['content-type']?.includes('application/json')
+    adapterResponse.headers['content-type']?.includes('application/json') &&
+    config.responseType !== 'text'
   ) {
     try {
       responseData = JSON.parse(responseData);

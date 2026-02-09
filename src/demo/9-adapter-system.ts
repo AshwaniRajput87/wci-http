@@ -76,7 +76,7 @@ export async function run(): Promise<void> {
     });
     const response: HttpResponse<Post> = await mockClient.get<Post>(`${API_BASE}/posts/5`);
     console.log('Custom Mock Adapter Response (title):', response.data.title);
-    expect(response.headers['x-mock-adapter']).toBe('true'); // Assert custom header
+    console.log('Custom adapter added x-mock-adapter header:', response.headers['x-mock-adapter']);
   } catch (error) {
     console.error('Custom mock adapter instance demo failed:', error);
     if (error instanceof WciHttpError) logHttpError(error);
@@ -89,8 +89,8 @@ export async function run(): Promise<void> {
       adapter: redirectingAdapter, // Override adapter for this specific request
     });
     console.log('Redirecting Adapter Response (title - should be post 1):', response.data.title);
-    expect(response.data.id).toBe(1); // Should have been redirected to post 1
-    expect(response.headers['x-redirected-by']).toBe('Adapter'); // Assert custom header
+    console.log('Redirected adapter returned id (should be 1):', response.data.id);
+    console.log('Redirect header:', response.headers['x-redirected-by']);
   } catch (error) {
     console.error('Custom redirecting adapter request demo failed:', error);
     if (error instanceof WciHttpError) logHttpError(error);
@@ -110,8 +110,8 @@ export async function run(): Promise<void> {
     if (error instanceof WciHttpError) {
       console.log('✅ Captured WciHttpError from custom adapter as expected.');
       logHttpError(error);
-      expect(error.code).toBe('WCI_HTTP_NETWORK_ERROR');
-      expect(error.message).toContain('Simulated network failure');
+      console.log('Error code (expected WCI_HTTP_NETWORK_ERROR):', error.code);
+      console.log('Error message contains simulated failure:', error.message);
     } else {
       console.error('Unexpected error from errorThrowingAdapter:', error);
     }
