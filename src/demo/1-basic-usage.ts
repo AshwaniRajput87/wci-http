@@ -4,8 +4,9 @@
  * This demo shows how to make simple GET and POST requests,
  * and how to use the `responseType` option.
  */
-import wciHttp, { httpClient } from '../index';
+import { httpClient } from '../client/httpClient';
 import { Post } from './types';
+import { HttpResponse } from '../types/http.types';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -15,8 +16,8 @@ export async function run(): Promise<void> {
   // 1. Simple GET request using the new shortcut
   try {
     console.log('\nFetching a single post (using httpClient.get shortcut)...');
-    const post = await httpClient.get<Post>(`${API_BASE}/posts/1`);
-    console.log('GET Response Data (as JSON object):', post);
+    const postResponse: HttpResponse<Post> = await httpClient.get<Post>(`${API_BASE}/posts/1`);
+    console.log('GET Response Data (as JSON object):', postResponse.data);
   } catch (error) {
     console.error('GET request failed:', error);
   }
@@ -29,10 +30,10 @@ export async function run(): Promise<void> {
       body: 'bar',
       userId: 1,
     };
-    const createdPost = await httpClient.post<Post>(`${API_BASE}/posts`, newPost, {
+    const createdPostResponse: HttpResponse<Post> = await httpClient.post<Post>(`${API_BASE}/posts`, newPost, {
       headers: { 'Content-Type': 'application/json' },
     });
-    console.log('POST Response Data:', createdPost);
+    console.log('POST Response Data:', createdPostResponse.data);
   } catch (error) {
     console.error('POST request failed:', error);
   }
@@ -43,10 +44,10 @@ export async function run(): Promise<void> {
     const updatedPostData = {
       title: 'foo-patched',
     };
-    const patchedPost = await httpClient.patch<Post>(`${API_BASE}/posts/1`, updatedPostData, {
+    const patchedPostResponse: HttpResponse<Post> = await httpClient.patch<Post>(`${API_BASE}/posts/1`, updatedPostData, {
       headers: { 'Content-Type': 'application/json' },
     });
-    console.log('PATCH Response Data:', patchedPost);
+    console.log('PATCH Response Data:', patchedPostResponse.data);
   } catch (error) {
     console.error('PATCH request failed:', error);
   }
@@ -54,10 +55,10 @@ export async function run(): Promise<void> {
   // 3. GET request with responseType: 'text' (using instance)
   try {
     console.log("\nFetching a post with responseType: 'text'...");
-    const postAsText = await wciHttp.get<string>(`${API_BASE}/posts/1`, {
+    const textResponse: HttpResponse<string> = await httpClient.get<string>(`${API_BASE}/posts/1`, {
       responseType: 'text',
     });
-    console.log('GET Response Data (as text):', postAsText.substring(0, 80) + '...');
+    console.log('GET Response Data (as text):', textResponse.data.substring(0, 80) + '...');
   } catch (error) {
     console.error('Text GET request failed:', error);
   }
@@ -65,10 +66,10 @@ export async function run(): Promise<void> {
   // 4. GET request with responseType: 'arraybuffer' for an image (using instance)
   try {
     console.log("\nFetching an image with responseType: 'arraybuffer'...");
-    const imageBuffer = await wciHttp.get<ArrayBuffer>('http://localhost:3000/image/150x150', {
+    const imageResponse: HttpResponse<ArrayBuffer> = await httpClient.get<ArrayBuffer>('http://localhost:3000/image/150x150', {
       responseType: 'arraybuffer',
     });
-    console.log(`GET Response Data (as ArrayBuffer): received ${imageBuffer.byteLength} bytes.`);
+    console.log(`GET Response Data (as ArrayBuffer): received ${imageResponse.data.byteLength} bytes.`);
   } catch (error) {
     console.error('ArrayBuffer GET request failed:', error);
   }

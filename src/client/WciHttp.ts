@@ -18,7 +18,13 @@ export class WciHttp {
   };
 
   constructor(config?: WciHttpConfig) {
-    this.config = deepMerge(DEFAULT_WCI_HTTP_CONFIG, config);
+    // Add environment variable support
+    const envConfig: Partial<WciHttpConfig> = {};
+    if (typeof process !== 'undefined' && process.env?.WCI_HTTP_BASE_URL) {
+      envConfig.baseURL = process.env.WCI_HTTP_BASE_URL;
+    }
+    
+    this.config = deepMerge(DEFAULT_WCI_HTTP_CONFIG, envConfig, config);
     this.interceptors = {
       request: new InterceptorManager<WciHttpConfig>(),
       response: new InterceptorManager<HttpResponse>(),
@@ -33,8 +39,11 @@ export class WciHttp {
     return new WciHttp(deepMerge(this.config, config));
   }
 
-  public request<T = any>(requestConfig: WciHttpConfig): Promise<T> {
+  public request<T = any>(requestConfig: WciHttpConfig): Promise<HttpResponse<T>> {
     const mergedConfig = deepMerge(this.config, requestConfig);
+    if (mergedConfig.method) {
+      mergedConfig.method = mergedConfig.method.toUpperCase() as any;
+    }
 
     const chain: any[] = [dispatchRequest, undefined];
 
@@ -70,28 +79,13 @@ export class WciHttp {
       promise = promise.then(chain.shift(), chain.shift());
     }
 
-    return promise.then((response) => {
-      // If the response is already transformed data (which can happen with transformResponse),
-      // we should not try to access a .data property that might not exist.
-      // A simple check is to see if it's an HttpResponse-like object.
-      if (
-        response &&
-        typeof response === 'object' &&
-        'data' in response &&
-        'status' in response &&
-        'headers' in response
-      ) {
-        return response.data as T;
-      }
-      // Otherwise, return the response as is (it might be already transformed data)
-      return response as T;
-    });
+    return promise as Promise<HttpResponse<T>>;
   }
 
   public get<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.GET, url });
   }
 
@@ -99,7 +93,7 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.POST, url, data });
   }
 
@@ -107,7 +101,7 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.PUT, url, data });
   }
 
@@ -115,28 +109,28 @@ export class WciHttp {
     url: string,
     data?: any,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.PATCH, url, data });
   }
 
   public delete<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.DELETE, url });
   }
 
   public head<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.HEAD, url });
   }
 
   public options<T = any>(
     url: string,
     config: WciHttpConfig = {},
-  ): Promise<T> {
+  ): Promise<HttpResponse<T>> {
     return this.request<T>({ ...config, method: HTTP_METHODS.OPTIONS, url });
   }
 }

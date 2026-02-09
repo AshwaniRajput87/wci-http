@@ -5,7 +5,7 @@ import { httpClient } from '../../src/client/httpClient'
 import { dispatchRequest } from '../../src/client/dispatchRequest'
 
 vi.mock('../../src/client/dispatchRequest', () => ({
-  dispatchRequest: vi.fn().mockResolvedValue({ data: 'mock data' }),
+  dispatchRequest: vi.fn().mockResolvedValue({ data: 'mock data', status: 200, statusText: 'OK', headers: {}, config: {} }),
 }))
 
 vi.mock('../../src/utils/urlResolverUtils', () => ({
@@ -18,7 +18,7 @@ describe('httpClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ;(dispatchRequest as any).mockClear()
-    ;(dispatchRequest as any).mockResolvedValue({ data: 'mock data' })
+    ;(dispatchRequest as any).mockResolvedValue({ data: 'mock data', status: 200, statusText: 'OK', headers: {}, config: {} })
   })
 
   test('uses url directly when baseURL is not provided', async () => {
@@ -56,7 +56,7 @@ describe('httpClient', () => {
 
     expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: 'get',
+        method: 'GET',
       })
     )
   })
@@ -121,13 +121,13 @@ describe('httpClient', () => {
 
   test('returns parsed JSON response typed as T', async () => {
     const responseData = { id: 1, name: 'Ayu' }
-    ;(dispatchRequest as any).mockResolvedValue(responseData)
+    ;(dispatchRequest as any).mockResolvedValue({ data: responseData, status: 200, statusText: 'OK', headers: {}, config: {} })
 
     const result = await httpClient.request({
       url: '/user',
     })
 
-    expect(result).toEqual(responseData)
+    expect(result.data).toEqual(responseData)
   })
 
   test('calls dispatchRequest exactly once', async () => {

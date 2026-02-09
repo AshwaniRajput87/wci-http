@@ -6,13 +6,14 @@
  */
 
 import { run as runBasicUsage } from './1-basic-usage';
-import { run as runConfigAndHeaders } from './2-config-and-headers';
+import { run as runConfigAndHeaders } from './2-config-and-headers'; // Corrected import
 import { run as runResponseHandling } from './3-response-handling';
 import { run as runInterceptors } from './4-interceptors';
 import { run as runErrorHandling } from './5-error-handling';
 import { run as runCancellationAndTimeouts } from './6-cancellation-and-timeouts';
 import { run as runAdvancedUsage } from './7-advanced-usage';
 import { run as runInstanceCreate } from './instance-create';
+import { run as runAdapterSystem } from './9-adapter-system'; // New import
 
 // Helper function for consistent section headers
 const printSectionHeader = (title: string) => {
@@ -50,6 +51,9 @@ async function mainDemoOrchestrator() {
 
     printSectionHeader('Demo 8: Instance Creation');
     await runInstanceCreate();
+    
+    printSectionHeader('Demo 9: Adapter System'); // New demo
+    await runAdapterSystem();
 
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');

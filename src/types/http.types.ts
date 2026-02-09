@@ -13,6 +13,7 @@
 import { HTTP_METHODS } from "../constants/httpMethods";
 import { LogLevel } from "./loggingTypes";
 import { InterceptorManager } from "../interceptors/interceptorManager";
+import { HttpAdapter } from "./adapter.types";
 
 
 export type HttpMethod =
@@ -57,6 +58,11 @@ export interface WciLogger {
 export type HttpHeaders = Record<string, string>;
 export type HttpQuery = Record<string, string | number | boolean>;
 
+export type TransformRequest = (
+  data: any,
+  headers: Record<string, any>,
+) => any;
+
 export interface ParamsSerializerOptions {
   indexes?: boolean | null;
   encode?: boolean;
@@ -89,6 +95,8 @@ export interface HttpRequest {
   retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
+  adapter?: HttpAdapter;
 }
 
 export type HttpRequestOptions =
@@ -107,6 +115,7 @@ export interface HttpClientConfig {
   logger?: WciLogger;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
 }
 
 export type HttpResponse<T = any> = {
@@ -199,6 +208,8 @@ export interface WciHttpConfig {
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
+  adapter?: HttpAdapter;
 
   // Retry configuration
   retry?: {
@@ -218,4 +229,3 @@ export interface WciHttpConfig {
     response: InterceptorManager<HttpResponse>;
   };
 }
-

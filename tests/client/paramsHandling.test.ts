@@ -1,12 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WciHttp } from '../../src/client/WciHttp';
-import { WciHttpConfig } from '../../src/types/http.types';
+import { WciHttpConfig, HttpResponse } from '../../src/types/http.types';
 import { dispatchRequest } from '../../src/client/dispatchRequest';
+import { buildURL } from '../../src/utils/buildURL'; // Import buildURL
+import { defaultParamsSerializer } from '../../src/utils/paramsSerializer'; // Import defaultParamsSerializer
 
-// Mock the dispatchRequest module
-vi.mock('../../src/client/dispatchRequest', () => ({
-  dispatchRequest: vi.fn(),
-}));
+// Mock the dispatchRequest module to dynamically build the URL
+vi.mock('../../src/client/dispatchRequest', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/client/dispatchRequest')>();
+  return {
+    dispatchRequest: vi.fn(async (config: WciHttpConfig): Promise<HttpResponse<any>> => {
+      const finalUrl = buildURL(
+        config.url || '',
+        config.params,
+        config.paramsSerializer || defaultParamsSerializer,
+        config.baseURL
+      );
+      return Promise.resolve({
+        data: { results: [] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { ...config, url: finalUrl } as WciHttpConfig, // Return config with resolved URL
+      });
+    }),
+  };
+});
 
 describe('Query Parameters Handling', () => {
   let httpClient: WciHttp;
@@ -16,23 +35,13 @@ describe('Query Parameters Handling', () => {
     mockDispatchRequest = vi.mocked(dispatchRequest);
     mockDispatchRequest.mockClear();
     
-    // Mock successful response
-    mockDispatchRequest.mockResolvedValue({
-      data: { results: [] },
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config: {} as WciHttpConfig,
-    });
-    
     httpClient = new WciHttp();
   });
 
   it('should handle simple params correctly', async () => {
-    await httpClient.get('/users', { params: { page: 1 } });
+    const response = await httpClient.get('/users', { params: { page: 1 } });
 
     expect(mockDispatchRequest).toHaveBeenCalledTimes(1);
-    
     expect(mockDispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/users',
@@ -40,13 +49,13 @@ describe('Query Parameters Handling', () => {
         params: { page: 1 },
       })
     );
+    expect(response.config.url).toBe('/users?page=1');
   });
 
   it('should handle array params correctly', async () => {
-    await httpClient.get('/search', { params: { tags: ['js', 'ts'] } });
+    const response = await httpClient.get('/search', { params: { tags: ['js', 'ts'] } });
 
     expect(mockDispatchRequest).toHaveBeenCalledTimes(1);
-    
     expect(mockDispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/search',
@@ -54,10 +63,11 @@ describe('Query Parameters Handling', () => {
         params: { tags: ['js', 'ts'] },
       })
     );
+    expect(response.config.url).toBe('/search?tags[]=js&tags[]=ts');
   });
 
   it('should handle nested params correctly', async () => {
-    await httpClient.get('/filter', { params: { filter: { a: 1 } } });
+    const response = await httpClient.get('/filter', { params: { filter: { a: 1 } } });
 
     expect(mockDispatchRequest).toHaveBeenCalledTimes(1);
     expect(mockDispatchRequest).toHaveBeenCalledWith(
@@ -67,10 +77,13 @@ describe('Query Parameters Handling', () => {
         params: { filter: { a: 1 } },
       })
     );
+    // Assuming defaultParamsSerializer flattens nested objects or handles them in a specific way
+    // For Axios parity, this usually means `filter[a]=1` or similar
+    expect(response.config.url).toBe('/filter?filter.a=1');
   });
 
   it('should merge params with existing query string correctly', async () => {
-    await httpClient.get('/users?active=true', { params: { page: 2 } });
+    const response = await httpClient.get('/users?active=true', { params: { page: 2 } });
 
     expect(mockDispatchRequest).toHaveBeenCalledTimes(1);
     expect(mockDispatchRequest).toHaveBeenCalledWith(
@@ -80,12 +93,13 @@ describe('Query Parameters Handling', () => {
         params: { page: 2 },
       })
     );
+    expect(response.config.url).toBe('/users?active=true&page=2');
   });
 
   it('should use custom paramsSerializer correctly', async () => {
-    const customSerializer = (params: any) => `q=${params.q}`;
+    const customSerializer = (params: any) => `q_custom=${params.q}`;
     
-    await httpClient.get('/custom', {
+    const response = await httpClient.get('/custom', {
       params: { q: 'hello world' },
       paramsSerializer: customSerializer,
     });
@@ -99,10 +113,11 @@ describe('Query Parameters Handling', () => {
         paramsSerializer: customSerializer,
       })
     );
+    expect(response.config.url).toBe('/custom?q_custom=hello world');
   });
 
   it('should handle special characters in params correctly', async () => {
-    await httpClient.get('/search', { params: { query: 'hello world & more' } });
+    const response = await httpClient.get('/search', { params: { query: 'hello world & more' } });
 
     expect(mockDispatchRequest).toHaveBeenCalledTimes(1);
     expect(mockDispatchRequest).toHaveBeenCalledWith(
@@ -112,10 +127,11 @@ describe('Query Parameters Handling', () => {
         params: { query: 'hello world & more' },
       })
     );
+    expect(response.config.url).toBe('/search?query=hello%20world%20%26%20more');
   });
 
   it('should handle null and undefined params correctly', async () => {
-    await httpClient.get('/api', { 
+    const response = await httpClient.get('/api', { 
       params: { 
         valid: 'value',
         nullValue: null,
@@ -135,6 +151,7 @@ describe('Query Parameters Handling', () => {
         },
       })
     );
+    expect(response.config.url).toBe('/api?valid=value');
   });
 
   it('should handle params with different array formats', async () => {
@@ -153,7 +170,7 @@ describe('Query Parameters Handling', () => {
       });
       return parts.join('&');
     }
-    await httpClient.get('/api', { 
+    const response = await httpClient.get('/api', { 
       params: { ids: [1, 2, 3] },
       paramsSerializer,
     });
@@ -166,5 +183,6 @@ describe('Query Parameters Handling', () => {
         paramsSerializer,
       })
     );
+    expect(response.config.url).toBe('/api?ids[]=1&ids[]=2&ids[]=3');
   });
 });

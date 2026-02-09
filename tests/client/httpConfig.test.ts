@@ -267,7 +267,7 @@ describe('httpClient', () => {
       fetcher: mockFetch,
     })
 
-    expect(result).toEqual(data)
+    expect(result.data).toEqual(data)
   })
 
   test('parses text response', async () => {
@@ -285,7 +285,7 @@ describe('httpClient', () => {
       fetcher: mockFetch,
     })
 
-    expect(result).toBe(body)
+    expect(result.data).toBe(body)
   })
 
   test('returns ArrayBuffer for unknown content-type', async () => {
@@ -303,7 +303,7 @@ describe('httpClient', () => {
       fetcher: mockFetch,
     })
 
-    expect(result).toBe(body)
+    expect(result.data).toBe(body)
   })
 
   test('throws WciHttpError with INVALID_JSON for bad JSON', async () => {})
