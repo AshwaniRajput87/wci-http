@@ -224,6 +224,10 @@ export interface WciHttpConfig {
     logResponseHeaders: boolean;
   };
 
+  // Config-level interceptors (concatenated per request)
+  requestInterceptors?: RequestInterceptor[];
+  responseInterceptors?: ResponseInterceptor[];
+
   interceptors?: {
     request: InterceptorManager<WciHttpConfig>;
     response: InterceptorManager<HttpResponse>;

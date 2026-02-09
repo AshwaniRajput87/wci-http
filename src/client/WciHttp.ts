@@ -5,7 +5,7 @@ import {
   ResponseInterceptor,
 } from '../types/http.types';
 import { dispatchRequest } from './dispatchRequest';
-import { deepMerge } from '../utils/mergeConfig';
+import { mergeWciConfig } from '../utils/mergeConfig';
 import { DEFAULT_WCI_HTTP_CONFIG } from './httpConfig';
 import { InterceptorManager } from '../interceptors/interceptorManager';
 import { HTTP_METHODS } from '../constants/httpMethods';
@@ -24,7 +24,7 @@ export class WciHttp {
       envConfig.baseURL = process.env.WCI_HTTP_BASE_URL;
     }
     
-    this.config = deepMerge(DEFAULT_WCI_HTTP_CONFIG, envConfig, config);
+    this.config = mergeWciConfig(DEFAULT_WCI_HTTP_CONFIG, envConfig, config);
     this.interceptors = {
       request: new InterceptorManager<WciHttpConfig>(),
       response: new InterceptorManager<HttpResponse>(),
@@ -36,11 +36,14 @@ export class WciHttp {
   }
 
   public create(config?: WciHttpConfig): WciHttp {
-    return new WciHttp(deepMerge(this.config, config));
+    return new WciHttp(mergeWciConfig(this.config, config));
   }
 
   public request<T = any>(requestConfig: WciHttpConfig): Promise<HttpResponse<T>> {
-    const mergedConfig = deepMerge(this.config, requestConfig);
+    const mergedConfig = mergeWciConfig(this.config, requestConfig);
+    const requestLevelReq = mergedConfig.requestInterceptors ?? [];
+    const requestLevelRes = mergedConfig.responseInterceptors ?? [];
+
     if (mergedConfig.method) {
       mergedConfig.method = mergedConfig.method.toUpperCase() as any;
     }
@@ -48,7 +51,12 @@ export class WciHttp {
     const chain: any[] = [dispatchRequest, undefined];
 
     try {
-      this.interceptors.request.getHandlers().forEach((interceptor) => {
+      const requestInterceptors = [
+        ...requestLevelReq,
+        ...this.interceptors.request.getHandlers(),
+      ];
+
+      requestInterceptors.forEach((interceptor) => {
         if (interceptor) {
           const run =
             !interceptor.runWhen || interceptor.runWhen(mergedConfig);
@@ -59,7 +67,12 @@ export class WciHttp {
         }
       });
 
-      this.interceptors.response.getHandlers().forEach((interceptor) => {
+      const responseInterceptors = [
+        ...this.interceptors.response.getHandlers(),
+        ...requestLevelRes,
+      ];
+
+      responseInterceptors.forEach((interceptor) => {
         if (interceptor) {
           const run =
             !interceptor.runWhen || interceptor.runWhen(mergedConfig);

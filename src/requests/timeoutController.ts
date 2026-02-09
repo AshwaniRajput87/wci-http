@@ -10,7 +10,10 @@ export const createTimeoutController = (
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   if (userSignal) {
-    userSignal.addEventListener("abort", () => controller.abort());
+    const add = (userSignal as any).addEventListener;
+    if (typeof add === 'function') {
+      add.call(userSignal, "abort", () => controller.abort());
+    }
   }
 
   return {
