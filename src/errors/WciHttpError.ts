@@ -1,5 +1,20 @@
 import { ErrorCode } from "./createErrorCode";
-import { HttpRequest } from "../types/http.types";
+import { HttpRequest, HttpMethod, HttpHeaders, HttpQuery } from "../types/http.types";
+
+/**
+ * Represents the serializable subset of an HttpRequest.
+ * Only includes properties safe and relevant for JSON serialization.
+ */
+export type SerializableHttpRequest = {
+  url?: string;
+  method?: HttpMethod;
+  headers?: HttpHeaders;
+  timeoutMs?: number;
+  responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
+  baseURL?: string;
+  query?: HttpQuery;
+  params?: Record<string, any>;
+};
 
 /**
  * Typed HTTP error used across the WCI HTTP client.
@@ -60,7 +75,8 @@ export class WciHttpError extends Error {
   }
 
   toJSON() {
-    const serializedConfig: any = {};
+    // Only serialize a safe and relevant subset of the config.
+    const serializedConfig: SerializableHttpRequest = {};
     if (this.config) {
       if (this.config.url !== undefined) serializedConfig.url = this.config.url;
       if (this.config.method !== undefined) serializedConfig.method = this.config.method;
@@ -72,7 +88,8 @@ export class WciHttpError extends Error {
       if (this.config.params !== undefined) serializedConfig.params = this.config.params;
     }
 
-    const serializedRequest: any = {};
+    // Only serialize a safe and relevant subset of the request.
+    const serializedRequest: SerializableHttpRequest = {};
     if (this.request) {
       if (this.request.url !== undefined) serializedRequest.url = this.request.url;
       if (this.request.method !== undefined) serializedRequest.method = this.request.method;
@@ -128,3 +145,4 @@ export function isWciHttpError(error: any): error is WciHttpError {
     (error as WciHttpError).isWciHttpError === true
   );
 }
+
