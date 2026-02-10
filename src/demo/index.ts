@@ -15,6 +15,7 @@ import { run as runAdvancedUsage } from './7-advanced-usage';
 import { run as runInstanceCreate } from './instance-create';
 import { run as runAdapterSystem } from './9-adapter-system'; // New import
 import { run as runMultipartUpload } from './multipart-upload';
+import { run as runProgressTracking } from './11-progress-tracking'; // New import
 
 // Helper function for consistent section headers
 const printSectionHeader = (title: string) => {
@@ -53,11 +54,14 @@ async function mainDemoOrchestrator() {
     printSectionHeader('Demo 8: Instance Creation');
     await runInstanceCreate();
     
-    printSectionHeader('Demo 9: Adapter System'); // New demo
+    printSectionHeader('Demo 9: Adapter System');
     await runAdapterSystem();
 
     printSectionHeader('Demo 10: Multipart Upload');
     await runMultipartUpload();
+
+    printSectionHeader('Demo 11: Upload & Download Progress'); // New demo
+    await runProgressTracking();
 
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');

@@ -131,6 +131,34 @@ describe('Adapter System', () => {
     // This is implicitly tested by verifying transformResponse runs in dispatchRequest later.
   });
 
+  test('sets duplex=half when upload progress stream has a body in Node', async () => {
+    const onUploadProgress = vi.fn();
+    const config: WciHttpConfig = {
+      url: '/progress-duplex',
+      method: 'POST',
+      data: { key: 'value' },
+      onUploadProgress,
+    };
+
+    await wciHttp.request(config);
+
+    const fetchInit = mockExecuteFetch.mock.calls[0][1];
+    expect(fetchInit.duplex).toBe('half');
+  });
+
+  test('does not set duplex when upload progress is absent', async () => {
+    const config: WciHttpConfig = {
+      url: '/progress-no-duplex',
+      method: 'POST',
+      data: { key: 'value' },
+    };
+
+    await wciHttp.request(config);
+
+    const fetchInit = mockExecuteFetch.mock.calls[0][1];
+    expect(fetchInit.duplex).toBeUndefined();
+  });
+
   // Test 4: Custom adapter receives final config
   test('custom adapter should receive the fully processed AdapterConfig', async () => {
     const customAdapter = vi.fn(async (config: AdapterConfig) => {

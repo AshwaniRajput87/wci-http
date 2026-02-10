@@ -10,6 +10,9 @@ import { createHttpErrorCodes, HttpErrorCodes } from '../errors/httpErrorCodes';
 import { executeFetch } from '../requests/executeFetch'; // executeFetch uses built-in AbortController support
 import { parseResponseBody } from '../utils/parseResponseBody';
 import { HttpAdapter, AdapterConfig, AdapterResponse } from '../types/adapter.types';
+import type { HttpRequest } from '../types/http.types';
+import { createProgressStream } from '../utils/createProgressStream'; // Import the new utility
+import { createDownloadProgressStream } from '../utils/createDownloadProgressStream'; // Import download utility
 
 const httpErrorCodes: HttpErrorCodes = createHttpErrorCodes();
 
@@ -19,22 +22,88 @@ const httpErrorCodes: HttpErrorCodes = createHttpErrorCodes();
 export const defaultAdapter: HttpAdapter = async <T = any>(
   config: AdapterConfig
 ): Promise<AdapterResponse<T>> => {
-  const { fetcher = fetch, signal, url, method, headers, body, responseType } = config;
+  const { fetcher = fetch, signal, url, method, headers, body, responseType, onUploadProgress, onDownloadProgress, data } = config;
+
+  let requestBody: BodyInit | undefined = body ?? (data as BodyInit | undefined);
+  let requestHeaders = { ...headers };
+
+  const isUserAborted = signal?.aborted === true || config.signal?.aborted === true;
+
+  // If already aborted before sending, emit minimal progress callbacks and throw abort
+  if (isUserAborted) {
+    if (requestBody && onUploadProgress) {
+      onUploadProgress({ loaded: 0, total: undefined, progress: 0 });
+    }
+    if (onDownloadProgress) {
+      onDownloadProgress({ loaded: 0, total: undefined, progress: 0 });
+    }
+    throw new WciHttpError({
+      code: httpErrorCodes.ABORTED,
+      message: 'Request aborted by user',
+      url,
+      method,
+      timeout: false,
+      config,
+    });
+  }
+
+  // Handle upload progress
+  if (requestBody && onUploadProgress) {
+    const { stream, contentLength, contentType } = await createProgressStream(requestBody, onUploadProgress);
+    requestBody = stream;
+    if (contentLength !== undefined) {
+      requestHeaders['Content-Length'] = String(contentLength);
+    }
+    if (contentType !== undefined && !requestHeaders['Content-Type']) {
+      requestHeaders['Content-Type'] = contentType;
+    }
+  }
+
+  const isNodeRuntime = typeof process !== 'undefined' && typeof process.versions?.node === 'string';
+  const hasBody = requestBody !== undefined && requestBody !== null;
+  const enableDuplex =
+    isNodeRuntime && hasBody && Boolean(onUploadProgress);
+
+  const fetchRequest: HttpRequest & { duplex?: 'half' } = {
+    url,
+    method,
+    headers: requestHeaders,
+    signal,
+    responseType,
+  };
+
+  if (enableDuplex) {
+    fetchRequest.duplex = 'half';
+  }
 
   try {
     // Execute request using existing transport logic
-    const response = await executeFetch(
+    let response = await executeFetch(
       fetcher,
-      {
-        url: url,
-        method: method,
-        headers: headers,
-        signal: signal, // Adapter just respects the signal
-        responseType: responseType,
-        // Other config properties are passed along but may not be directly used by executeFetch
-      },
-      body
+      fetchRequest,
+      requestBody,
+      signal // ensure abort/timeout signals are passed to fetch
     );
+
+    // Handle download progress
+    if (onDownloadProgress && response.body) {
+      const contentLengthHeader = response.headers.get('content-length');
+      const totalDownloadSize = contentLengthHeader ? parseInt(contentLengthHeader, 10) : undefined;
+
+      const progressTrackingStream = createDownloadProgressStream(
+        response.body,
+        totalDownloadSize,
+        onDownloadProgress
+      );
+
+      // Create a new Response object with the progress-tracking stream
+      response = new Response(progressTrackingStream, {
+        headers: response.headers,
+        status: response.status,
+        statusText: response.statusText,
+      });
+    }
+
 
     // Normalize response headers
     const responseHeaders: Record<string, string> = {};
@@ -47,6 +116,17 @@ export const defaultAdapter: HttpAdapter = async <T = any>(
     if (method === 'HEAD' || response.status === 204 || response.headers.get('content-length') === '0') {
       responseData = undefined as T;
     } else {
+      // If aborted after receiving response, surface abort before parsing
+      if (signal?.aborted) {
+        throw new WciHttpError({
+          code: httpErrorCodes.ABORTED,
+          message: 'Request aborted by user',
+          url: config.url,
+          method: config.method,
+          timeout: false,
+          config,
+        });
+      }
       responseData = (await parseResponseBody(response as any, config)) as T;
     }
 
@@ -84,8 +164,14 @@ export const defaultAdapter: HttpAdapter = async <T = any>(
     let errorMessage: string;
     let isTimeout = false;
 
-    if ((error as any)?.name === 'AbortError') {
-      if (config.signal?.aborted === true) {
+    const abortLike =
+      (error as any)?.name === 'AbortError' ||
+      (typeof (error as any)?.message === 'string' &&
+        (error as any).message.toLowerCase().includes('abort'));
+    const userAborted = signal?.aborted === true || config.signal?.aborted === true;
+
+    if (abortLike) {
+      if (userAborted) {
         errorCode = httpErrorCodes.ABORTED;
         errorMessage = 'Request aborted by user';
       } else {
