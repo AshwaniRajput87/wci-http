@@ -1,8 +1,20 @@
 import { HTTP_METHODS } from '../constants/httpMethods';
 import { WciHttpConfig } from '../types/http.types';
 
-const isPlainObject = (val: any): val is Record<string, any> =>
-  val !== null && typeof val === 'object' && !Array.isArray(val);
+const isPlainObject = (val: any): val is Record<string, any> => {
+  if (val === null || typeof val !== 'object' || Array.isArray(val)) return false;
+
+  // Treat built-in body types as non-plain to avoid cloning/stripping behavior (e.g., FormData)
+  const tag = (val as any)[Symbol.toStringTag];
+  if (tag === 'FormData' || tag === 'URLSearchParams') return false;
+  if (val instanceof Blob || val instanceof ArrayBuffer) return false;
+  // Some environments expose ReadableStream; exclude to keep streaming bodies intact
+  if (typeof ReadableStream !== 'undefined' && val instanceof ReadableStream) return false;
+  if (typeof (val as any).append === 'function') return false; // catch FormData-like without tags
+  if (typeof (val as any).pipe === 'function') return false; // streams should not be deep merged
+
+  return true;
+};
 
 const toArray = <T>(val: T | T[] | undefined): T[] => {
   if (val === undefined) return [];

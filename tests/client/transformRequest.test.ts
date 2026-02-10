@@ -118,4 +118,46 @@ describe("transformRequest", () => {
       "Content-Type": "application/x-www-form-urlencoded",
     });
   });
+
+  test("does not stringify FormData returned by transformRequest", async () => {
+    (mockFetch as any).mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const form = new FormData();
+    form.append("name", "alice");
+
+    await httpClient({
+      url: "/upload",
+      method: "post",
+      data: { placeholder: true },
+      fetcher: mockFetch,
+      transformRequest: () => form,
+    });
+
+    const fetchInit = (mockFetch as any).mock.calls[0][1];
+    expect(fetchInit.body).toBe(form);
+    // Content-Type must be set by fetch/undici for multipart boundaries
+    expect(Object.keys(fetchInit.headers)).not.toContain("Content-Type");
+    expect(Object.keys(fetchInit.headers)).not.toContain("content-type");
+  });
+
+  test("respects user-provided Content-Type when FormData is used", async () => {
+    (mockFetch as any).mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const form = new FormData();
+    form.append("file", new Blob(["hi"]), "hi.txt");
+
+    await httpClient({
+      url: "/upload-custom",
+      method: "post",
+      data: form,
+      headers: { "Content-Type": "custom/type" },
+      fetcher: mockFetch,
+    });
+
+    const fetchInit = (mockFetch as any).mock.calls[0][1];
+    // Body should not be stringified and custom header must persist
+    expect(fetchInit.body).toBeDefined();
+    expect(typeof fetchInit.body).not.toBe("string");
+    expect(fetchInit.headers).toMatchObject({ "Content-Type": "custom/type" });
+  });
 });
