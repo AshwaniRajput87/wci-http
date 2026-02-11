@@ -12,19 +12,37 @@ import { HTTP_METHODS } from '../constants/httpMethods';
 
 export class WciHttp {
   public config: WciHttpConfig;
-  public interceptors: {
-    request: InterceptorManager<WciHttpConfig>;
-    response: InterceptorManager<HttpResponse>;
-  };
+  public methodDefaults: Record<string, Partial<WciHttpConfig>>;
 
-  constructor(config?: WciHttpConfig) {
+  constructor(instanceConfig?: WciHttpConfig) {
     // Add environment variable support
     const envConfig: Partial<WciHttpConfig> = {};
     if (typeof process !== 'undefined' && process.env?.WCI_HTTP_BASE_URL) {
       envConfig.baseURL = process.env.WCI_HTTP_BASE_URL;
     }
+
+    const configsToMerge: Array<Partial<WciHttpConfig>> = [
+      DEFAULT_WCI_HTTP_CONFIG,
+      envConfig
+    ];
+
+    this.methodDefaults = {};
+    const nonMethodSpecificInstanceConfig: Partial<WciHttpConfig> = {};
+
+    if (instanceConfig) {
+      Object.entries(instanceConfig).forEach(([key, value]) => {
+        const lowerKey = key.toLowerCase();
+        if (Object.values(HTTP_METHODS).map(m => m.toLowerCase()).includes(lowerKey)) {
+          this.methodDefaults[lowerKey] = value as Partial<WciHttpConfig>;
+        } else {
+          (nonMethodSpecificInstanceConfig as any)[key] = value;
+        }
+      });
+      configsToMerge.push(nonMethodSpecificInstanceConfig);
+    }
     
-    this.config = mergeWciConfig(DEFAULT_WCI_HTTP_CONFIG, envConfig, config);
+    this.config = mergeWciConfig(...configsToMerge);
+
     this.interceptors = {
       request: new InterceptorManager<WciHttpConfig>(),
       response: new InterceptorManager<HttpResponse>(),
@@ -40,7 +58,10 @@ export class WciHttp {
   }
 
   public request<T = any>(requestConfig: WciHttpConfig): Promise<HttpResponse<T>> {
-    const mergedConfig = mergeWciConfig(this.config, requestConfig);
+    const requestMethod = (requestConfig.method || this.config.method || HTTP_METHODS.GET).toLowerCase();
+    const methodSpecificConfig = this.methodDefaults[requestMethod] || {};
+
+    const mergedConfig = mergeWciConfig(this.config, methodSpecificConfig, requestConfig);
     const requestLevelReq = mergedConfig.requestInterceptors ?? [];
     const requestLevelRes = mergedConfig.responseInterceptors ?? [];
 

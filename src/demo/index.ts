@@ -16,6 +16,8 @@ import { run as runInstanceCreate } from './instance-create';
 import { run as runAdapterSystem } from './9-adapter-system'; // New import
 import { run as runMultipartUpload } from './multipart-upload';
 import { run as runProgressTracking } from './11-progress-tracking'; // New import
+import { WciHttp } from '../client/WciHttp';
+import type { HttpAdapter } from '../types/adapter.types';
 
 // Helper function for consistent section headers
 const printSectionHeader = (title: string) => {
@@ -63,6 +65,9 @@ async function mainDemoOrchestrator() {
     printSectionHeader('Demo 11: Upload & Download Progress'); // New demo
     await runProgressTracking();
 
+    printSectionHeader('Demo 12: Method-Specific Defaults');
+    await runMethodDefaultsDemo();
+
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');
     console.error(error);
@@ -74,3 +79,34 @@ async function mainDemoOrchestrator() {
 
 // Execute the orchestrator
 mainDemoOrchestrator();
+
+const runMethodDefaultsDemo = async () => {
+  const client = new WciHttp({
+    timeout: 5000,
+    headers: { 'X-Global': 'yes' },
+    get: { timeout: 2000, headers: { 'X-GET': 'true' } },
+    post: { timeout: 8000, headers: { 'X-POST': 'true' } },
+  });
+
+  const demoAdapter: HttpAdapter = async (config) => {
+    const method = (config.method || 'GET').toUpperCase();
+    const headerKey = method === 'GET' ? 'X-GET' : method === 'POST' ? 'X-POST' : 'X-Global';
+    const headerValue =
+      config.headers?.[headerKey] ?? config.headers?.[headerKey.toLowerCase()];
+
+    console.log(`${method} request timeout → ${config.timeout}`);
+    console.log(`${method} headers → ${headerKey}=${headerValue}`);
+
+    return {
+      data: { ok: true, method },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+      request: {},
+    };
+  };
+
+  await client.get('/posts/1', { adapter: demoAdapter });
+  await client.post('/posts', { title: 'demo' }, { adapter: demoAdapter });
+};
