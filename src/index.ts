@@ -27,3 +27,7 @@ export * from './types/success.types'
 export * from './errors/WciHttpError'
 export * from './errors/errorCatalog'
 export * from './errors/httpErrorCodes'
+
+// Export utilities
+export { buildURL } from './utils/buildURL'
+export { defaultParamsSerializer as paramsSerializer } from './utils/paramsSerializer'

@@ -1,5 +1,20 @@
 import { ErrorCode } from "./createErrorCode";
-import { HttpRequest } from "../types/http.types";
+import { HttpRequest, HttpMethod, HttpHeaders, HttpQuery } from "../types/http.types";
+
+/**
+ * Represents the serializable subset of an HttpRequest.
+ * Only includes properties safe and relevant for JSON serialization.
+ */
+export type SerializableHttpRequest = {
+  url?: string;
+  method?: HttpMethod;
+  headers?: HttpHeaders;
+  timeoutMs?: number;
+  responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
+  baseURL?: string;
+  query?: HttpQuery;
+  params?: Record<string, any>;
+};
 
 /**
  * Typed HTTP error used across the WCI HTTP client.
@@ -60,22 +75,30 @@ export class WciHttpError extends Error {
   }
 
   toJSON() {
-    const serializedConfig: Partial<HttpRequest> = {};
+    // Only serialize a safe and relevant subset of the config.
+    const serializedConfig: SerializableHttpRequest = {};
     if (this.config) {
-      for (const key of ["url", "method", "headers", "timeoutMs", "responseType", "baseURL", "query"] as const) {
-        if (this.config[key] !== undefined) {
-          serializedConfig[key] = this.config[key];
-        }
-      }
+      if (this.config.url !== undefined) serializedConfig.url = this.config.url;
+      if (this.config.method !== undefined) serializedConfig.method = this.config.method;
+      if (this.config.headers !== undefined) serializedConfig.headers = this.config.headers;
+      if (this.config.timeoutMs !== undefined) serializedConfig.timeoutMs = this.config.timeoutMs;
+      if (this.config.responseType !== undefined) serializedConfig.responseType = this.config.responseType;
+      if (this.config.baseURL !== undefined) serializedConfig.baseURL = this.config.baseURL;
+      if (this.config.query !== undefined) serializedConfig.query = this.config.query;
+      if (this.config.params !== undefined) serializedConfig.params = this.config.params;
     }
 
-    const serializedRequest: Partial<HttpRequest> = {};
+    // Only serialize a safe and relevant subset of the request.
+    const serializedRequest: SerializableHttpRequest = {};
     if (this.request) {
-      for (const key of ["url", "method", "headers", "timeoutMs", "responseType", "baseURL", "query"] as const) {
-        if (this.request[key] !== undefined) {
-          serializedRequest[key] = this.request[key];
-        }
-      }
+      if (this.request.url !== undefined) serializedRequest.url = this.request.url;
+      if (this.request.method !== undefined) serializedRequest.method = this.request.method;
+      if (this.request.headers !== undefined) serializedRequest.headers = this.request.headers;
+      if (this.request.timeoutMs !== undefined) serializedRequest.timeoutMs = this.request.timeoutMs;
+      if (this.request.responseType !== undefined) serializedRequest.responseType = this.request.responseType;
+      if (this.request.baseURL !== undefined) serializedRequest.baseURL = this.request.baseURL;
+      if (this.request.query !== undefined) serializedRequest.query = this.request.query;
+      if (this.request.params !== undefined) serializedRequest.params = this.request.params;
     }
 
     const serializedResponse: Record<string, any> = {};
@@ -122,3 +145,4 @@ export function isWciHttpError(error: any): error is WciHttpError {
     (error as WciHttpError).isWciHttpError === true
   );
 }
+

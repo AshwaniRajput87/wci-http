@@ -28,6 +28,18 @@ describe("serializeRequestBody", () => {
     expect(headers).toEqual({}); // Serializer should return empty headers if it didn't change them
   });
 
+  test("detects FormData-like objects across realms", () => {
+    // Simulate cross-realm / polyfilled FormData
+    const pseudoFormData: any = {
+      append: () => {},
+      [Symbol.toStringTag]: "FormData",
+    };
+
+    const { body, headers } = serializeRequestBody({ body: pseudoFormData });
+    expect(body).toBe(pseudoFormData);
+    expect(headers).toEqual({});
+  });
+
   test("should set Content-Type for URLSearchParams if not present", () => {
     const params = new URLSearchParams();
     params.append("key", "value");

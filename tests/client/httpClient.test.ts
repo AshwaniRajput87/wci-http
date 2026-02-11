@@ -2,10 +2,11 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 
 import { HTTP_METHODS } from '../../src/constants/httpMethods'
 import { httpClient } from '../../src/client/httpClient'
-import * as core from '../../src/client/core'
+import { dispatchRequest } from '../../src/client/dispatchRequest'
 
-
-
+vi.mock('../../src/client/dispatchRequest', () => ({
+  dispatchRequest: vi.fn().mockResolvedValue({ data: 'mock data', status: 200, statusText: 'OK', headers: {}, config: {} }),
+}))
 
 vi.mock('../../src/utils/urlResolverUtils', () => ({
   resolveUrl: vi.fn((baseURL: string | undefined, url: string) =>
@@ -16,19 +17,17 @@ vi.mock('../../src/utils/urlResolverUtils', () => ({
 describe('httpClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(dispatchRequest as any).mockClear()
+    ;(dispatchRequest as any).mockResolvedValue({ data: 'mock data', status: 200, statusText: 'OK', headers: {}, config: {} })
   })
 
   test('uses url directly when baseURL is not provided', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await httpClient.request({
       url: '/test',
       method: HTTP_METHODS.GET,
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/test',
       })
@@ -36,17 +35,13 @@ describe('httpClient', () => {
   })
 
   test('resolves baseURL + url when baseURL is provided', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await httpClient.request({
       baseURL: 'https://api.example.com',
       url: '/users',
       method: HTTP_METHODS.GET,
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL: 'https://api.example.com',
         url: '/users',
@@ -55,32 +50,24 @@ describe('httpClient', () => {
   })
 
   test('defaults method to GET', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await httpClient.request({
       url: '/test',
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: 'get',
+        method: 'GET',
       })
     )
   })
 
   test('uppercases HTTP method', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await httpClient.request({
       url: '/test',
       method: HTTP_METHODS.POST,
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'POST',
       })
@@ -88,10 +75,6 @@ describe('httpClient', () => {
   })
 
   test('passes headers correctly', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     const headers = {
       Authorization: 'Bearer token',
     }
@@ -101,7 +84,7 @@ describe('httpClient', () => {
       headers,
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         headers,
       })
@@ -109,10 +92,6 @@ describe('httpClient', () => {
   })
 
   test('stringifies body when body is provided', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     const body = { name: 'Ayu' }
 
     await httpClient.request({
@@ -121,7 +100,7 @@ describe('httpClient', () => {
       body,
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         body,
       })
@@ -129,15 +108,11 @@ describe('httpClient', () => {
   })
 
   test('does not send body when body is undefined', async () => {
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue({} as any)
-
     await httpClient.request({
       url: '/test',
     })
 
-    expect(coreSpy).toHaveBeenCalledWith(
+    expect(dispatchRequest).toHaveBeenCalledWith(
       expect.not.objectContaining({
         body: expect.anything(),
       })
@@ -146,31 +121,26 @@ describe('httpClient', () => {
 
   test('returns parsed JSON response typed as T', async () => {
     const responseData = { id: 1, name: 'Ayu' }
-    vi.spyOn(core, 'coreHttpClient').mockResolvedValue(responseData)
+    ;(dispatchRequest as any).mockResolvedValue({ data: responseData, status: 200, statusText: 'OK', headers: {}, config: {} })
 
     const result = await httpClient.request({
       url: '/user',
     })
 
-    expect(result).toEqual(responseData)
+    expect(result.data).toEqual(responseData)
   })
 
-  test('calls coreHttpClient exactly once', async () => {
-    const responseData = { id: 1, name: 'Ayu' }
-    const coreSpy = vi
-      .spyOn(core, 'coreHttpClient')
-      .mockResolvedValue(responseData)
-
+  test('calls dispatchRequest exactly once', async () => {
     await httpClient.request({
       url: '/test',
     })
 
-    expect(coreSpy).toHaveBeenCalledTimes(1)
+    expect(dispatchRequest).toHaveBeenCalledTimes(1)
   })
 
   test('should throw WciHttpError for invalid JSON', async () => {
     const error = new Error('Invalid JSON')
-    vi.spyOn(core, 'coreHttpClient').mockRejectedValue(error)
+    ;(dispatchRequest as any).mockRejectedValue(error)
 
     await expect(
       httpClient.request({
@@ -181,12 +151,9 @@ describe('httpClient', () => {
 
   describe('method shortcuts', () => {
     test('httpClient.get should make a GET request', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       await httpClient.get('/test-get')
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-get',
           method: 'GET',
@@ -195,14 +162,11 @@ describe('httpClient', () => {
     })
 
     test('httpClient.post should make a POST request with data', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       const postData = { name: 'test' }
 
       await httpClient.post('/test-post', postData)
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-post',
           method: 'POST',
@@ -212,14 +176,11 @@ describe('httpClient', () => {
     })
 
     test('httpClient.put should make a PUT request with data', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       const putData = { name: 'test-updated' }
 
       await httpClient.put('/test-put', putData)
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-put',
           method: 'PUT',
@@ -229,12 +190,9 @@ describe('httpClient', () => {
     })
 
     test('httpClient.delete should make a DELETE request', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       await httpClient.delete('/test-delete')
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-delete',
           method: 'DELETE',
@@ -243,14 +201,11 @@ describe('httpClient', () => {
     })
 
     test('httpClient.patch should make a PATCH request with data', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       const patchData = { status: 'applied' }
 
       await httpClient.patch('/test-patch', patchData)
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-patch',
           method: 'PATCH',
@@ -260,12 +215,9 @@ describe('httpClient', () => {
     })
 
     test('httpClient.head should make a HEAD request', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       await httpClient.head('/test-head')
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-head',
           method: 'HEAD',
@@ -274,12 +226,9 @@ describe('httpClient', () => {
     })
 
     test('httpClient.options should make an OPTIONS request', async () => {
-      const coreSpy = vi
-        .spyOn(core, 'coreHttpClient')
-        .mockResolvedValue({} as any)
       await httpClient.options('/test-options')
 
-      expect(coreSpy).toHaveBeenCalledWith(
+      expect(dispatchRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/test-options',
           method: 'OPTIONS',

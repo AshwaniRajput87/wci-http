@@ -2,8 +2,9 @@
  * This file demonstrates advanced usage patterns for the WciHttp client,
  * including parallel and chained API calls.
  */
-import wciHttp from '../index';
+import { httpClient } from '../client/httpClient'; // Use httpClient for consistency
 import { Post, User } from './types'; // Assuming types exist in a local types file
+import { HttpResponse } from '../types/http.types';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -24,8 +25,8 @@ export const fetchPostAndUser = async (): Promise<{ post: Post; user: User }> =>
   console.log('--- Running Chained API Call Demo ---');
   try {
     // First, fetch all posts
-    const posts = await wciHttp.get<Post[]>(`${API_BASE}/posts`);
-    const firstPost = posts[0];
+    const postsResponse: HttpResponse<Post[]> = await httpClient.get<Post[]>(`${API_BASE}/posts`);
+    const firstPost = postsResponse.data[0];
     console.log('Fetched Post:', firstPost.title);
 
     if (!firstPost) {
@@ -33,10 +34,10 @@ export const fetchPostAndUser = async (): Promise<{ post: Post; user: User }> =>
     }
 
     // Then, use the userId from the first post to fetch the author
-    const user = await wciHttp.get<User>(`${API_BASE}/users/${firstPost.userId}`);
-    console.log('Fetched User:', user.name);
+    const userResponse: HttpResponse<User> = await httpClient.get<User>(`${API_BASE}/users/${firstPost.userId}`);
+    console.log('Fetched User:', userResponse.data.name);
 
-    return { post: firstPost, user };
+    return { post: firstPost, user: userResponse.data };
   } catch (error) {
     console.error('Chained API call failed:', error);
     throw error;
@@ -59,19 +60,19 @@ export const fetchPostAndUser = async (): Promise<{ post: Post; user: User }> =>
  *
  * All three requests are dispatched at the same time.
  */
-export const fetchMultipleResources = async (): Promise<[Post, User[], any[]]> => {
+export const fetchMultipleResources = async (): Promise<[HttpResponse<Post>, HttpResponse<User[]>, HttpResponse<any[]>]> => {
   console.log('\n--- Running Parallel API Call Demo ---');
   try {
     const results = await Promise.all([
-      wciHttp.get<Post>(`${API_BASE}/posts/1`),
-      wciHttp.get<User[]>(`${API_BASE}/users`),
-      wciHttp.get<any[]>(`${API_BASE}/albums`),
+      httpClient.get<Post>(`${API_BASE}/posts/1`),
+      httpClient.get<User[]>(`${API_BASE}/users`),
+      httpClient.get<any[]>(`${API_BASE}/albums`),
     ]);
 
     console.log('Successfully fetched multiple resources in parallel:');
-    console.log('- Post with ID 1:', results[0].title);
-    console.log(`- Fetched ${results[1].length} users.`);
-    console.log(`- Fetched ${results[2].length} albums.`);
+    console.log('- Post with ID 1:', results[0].data.title);
+    console.log(`- Fetched ${results[1].data.length} users.`);
+    console.log(`- Fetched ${results[2].data.length} albums.`);
 
     return results;
   } catch (error) {

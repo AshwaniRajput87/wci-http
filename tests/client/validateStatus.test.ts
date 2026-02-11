@@ -119,7 +119,7 @@ describe("validateStatus", () => {
     const result = await wciHttp.get("/data", {
       validateStatus: (status) => status === 404,
     });
-    expect(result).toBeNull();
+    expect(result.data).toBeNull();
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -182,6 +182,6 @@ describe("validateStatus", () => {
     mockFetch.mockResolvedValueOnce(mockResponse);
 
     const responseData = await wciHttp.get("/data");
-    expect(responseData).toEqual({ data: "success" });
+    expect(responseData.data).toEqual({ data: "success" });
   });
 });

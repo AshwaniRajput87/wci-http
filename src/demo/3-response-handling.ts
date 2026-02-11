@@ -4,7 +4,8 @@
  * This demo shows how the client automatically handles different response
  * Content-Types and logs the detected response type.
  */
-import wciHttp from '../index';
+import { httpClient } from '../client/httpClient'; // Use httpClient for consistency
+import { HttpResponse } from '../types/http.types'; // Import HttpResponse
 import { logHttpError } from './httpErrorLogger';
 import { WciHttpError } from '../errors/WciHttpError';
 
@@ -16,9 +17,9 @@ export async function run(): Promise<void> {
   // 1. Fetch JSON response
   try {
     console.log('\nFetching a JSON response...');
-    const jsonResponse = await wciHttp.get(`${API_BASE}/todos/1`);
-    console.log('Detected Response Type (JSON):', typeof jsonResponse);
-    console.log('JSON Response Data (title):', jsonResponse.title);
+    const jsonResponse: HttpResponse<{ title: string }> = await httpClient.get(`${API_BASE}/todos/1`);
+    console.log('Detected Response Type (JSON):', typeof jsonResponse.data);
+    console.log('JSON Response Data (title):', jsonResponse.data.title);
   } catch (error) {
     if (error instanceof WciHttpError) {
       logHttpError(error);
@@ -31,9 +32,9 @@ export async function run(): Promise<void> {
   try {
     console.log('\nFetching a text/html response (e.g., a web page)...');
     // Using example.com which typically returns text/html
-    const htmlResponse = await wciHttp.get('http://localhost:3000/html', { responseType: 'text' });
-    console.log('Detected Response Type (HTML):', typeof htmlResponse);
-    console.log('HTML Response Data (starts with):', (htmlResponse as string).substring(0, 100));
+    const htmlResponse: HttpResponse<string> = await httpClient.get('http://localhost:3000/html', { responseType: 'text' });
+    console.log('Detected Response Type (HTML):', typeof htmlResponse.data);
+    console.log('HTML Response Data (starts with):', (htmlResponse.data as string).substring(0, 100));
   } catch (error) {
     if (error instanceof WciHttpError) {
       logHttpError(error);
@@ -46,7 +47,7 @@ export async function run(): Promise<void> {
   try {
     console.log('\n3. Demonstrating a network error (e.g., connection refused)...');
     // This request is expected to fail and produce a WciHttpError
-    await wciHttp.get('http://localhost:9999/non-existent.jpg');
+    await httpClient.get('http://localhost:9999/non-existent.jpg');
   } catch (error) {
     if (error instanceof WciHttpError) {
       console.log('✅ Captured network error as expected:');

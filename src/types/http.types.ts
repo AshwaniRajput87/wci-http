@@ -13,6 +13,7 @@
 import { HTTP_METHODS } from "../constants/httpMethods";
 import { LogLevel } from "./loggingTypes";
 import { InterceptorManager } from "../interceptors/interceptorManager";
+import { HttpAdapter } from "./adapter.types";
 
 
 export type HttpMethod =
@@ -57,6 +58,23 @@ export interface WciLogger {
 export type HttpHeaders = Record<string, string>;
 export type HttpQuery = Record<string, string | number | boolean>;
 
+export type TransformRequest = (
+  data: any,
+  headers: Record<string, any>,
+) => any;
+
+export interface ParamsSerializerOptions {
+  indexes?: boolean | null;
+  encode?: boolean;
+  encodeValuesOnly?: boolean;
+  arrayFormat?: "none" | "indices" | "brackets" | "repeat" | "comma";
+}
+
+export type ParamsSerializer = (
+  params: Record<string, any>,
+  options?: ParamsSerializerOptions,
+) => string;
+
 export interface HttpRequest {
   url: string;
   method?: HttpMethod;
@@ -68,6 +86,7 @@ export interface HttpRequest {
   timeoutMs?: number;
   baseURL?: string;
   query?: HttpQuery;
+  params?: Record<string, any>;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
   logger?: WciLogger;
@@ -76,6 +95,8 @@ export interface HttpRequest {
   retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
+  adapter?: HttpAdapter;
 }
 
 export type HttpRequestOptions =
@@ -94,6 +115,7 @@ export interface HttpClientConfig {
   logger?: WciLogger;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
 }
 
 export type HttpResponse<T = any> = {
@@ -178,12 +200,16 @@ export interface WciHttpConfig {
   timeoutMs?: number;
   baseURL?: string;
   query?: HttpQuery;
+  params?: Record<string, any>;
+  paramsSerializer?: ParamsSerializer;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
   logger?: WciLogger;
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
+  transformRequest?: TransformRequest | TransformRequest[];
+  adapter?: HttpAdapter;
 
   // Retry configuration
   retry?: {
@@ -198,9 +224,12 @@ export interface WciHttpConfig {
     logResponseHeaders: boolean;
   };
 
+  // Config-level interceptors (concatenated per request)
+  requestInterceptors?: RequestInterceptor[];
+  responseInterceptors?: ResponseInterceptor[];
+
   interceptors?: {
     request: InterceptorManager<WciHttpConfig>;
     response: InterceptorManager<HttpResponse>;
   };
 }
-

@@ -122,7 +122,7 @@ describe("transformResponse", () => {
       },
     });
 
-    expect(result).toBe("Transformed Value: 42");
+    expect(result.data).toBe("Transformed Value: 42");
   });
 
   test("should apply an array of transformResponse functions in sequence", async () => {
@@ -145,7 +145,7 @@ describe("transformResponse", () => {
       ],
     });
 
-    expect(result).toBe("144.00");
+    expect(result.data).toBe("144.00");
   });
 
   test("should not transform data if transformResponse is not provided", async () => {
@@ -162,7 +162,7 @@ describe("transformResponse", () => {
       fetcher: mockFetch,
     });
 
-    expect(result).toEqual(originalData);
+    expect(result.data).toEqual(originalData);
   });
 
   test("should handle async transform functions correctly", async () => {
@@ -189,6 +189,6 @@ describe("transformResponse", () => {
       ],
     });
 
-    expect(result).toEqual({ id: 2, step1: true, step2: true });
+    expect(result.data).toEqual({ id: 2, step1: true, step2: true });
   });
 });

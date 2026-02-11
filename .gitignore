@@ -1,5 +1,14 @@
+# dependencies
 node_modules
+
+# build outputs
 build
 dist
+src/dist
+
+# environment
 .env
+
+# coverage
 coverage
+
