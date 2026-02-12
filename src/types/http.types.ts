@@ -89,6 +89,7 @@ export interface HttpRequest {
   params?: Record<string, any>;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   logger?: WciLogger;
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;
@@ -115,6 +116,7 @@ export interface HttpClientConfig {
   headers?: HttpHeaders;
   timeout?: number;
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   params?: HttpQuery;
   fetcher?: HttpClientFetcher;
   method?: string;
@@ -211,6 +213,7 @@ export interface WciHttpConfig {
   paramsSerializer?: ParamsSerializer;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   logger?: WciLogger;
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;

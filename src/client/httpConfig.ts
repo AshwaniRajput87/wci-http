@@ -5,6 +5,7 @@ export const DEFAULT_WCI_HTTP_CONFIG: WciHttpConfig = {
     headers: {},
     timeout: 0, // 0 means no timeout
     method: 'get',
+    withCredentials: false,
     retry: {
         retries: 0,
         delay: 1000,

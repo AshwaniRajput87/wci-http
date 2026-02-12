@@ -194,6 +194,9 @@ export const mergeWciConfig = (
         case 'logging':
           result.logging = normalizeLogging(result.logging, value);
           break;
+        case 'withCredentials':
+          result.withCredentials = value;
+          break;
         case 'signal':
           result.signal = value;
           break;

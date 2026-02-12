@@ -17,6 +17,7 @@ import { run as runAdapterSystem } from './9-adapter-system'; // New import
 import { run as runMultipartUpload } from './multipart-upload';
 import { run as runProgressTracking } from './11-progress-tracking'; // New import
 import { run as runAdvancedRetry } from './13-advanced-retry';
+import { run as runWithCredentials } from './14-with-credentials';
 import { WciHttp } from '../client/WciHttp';
 import type { HttpAdapter } from '../types/adapter.types';
 
@@ -71,6 +72,9 @@ async function mainDemoOrchestrator() {
 
     printSectionHeader('Demo 13: Advanced Retry Configuration');
     await runAdvancedRetry();
+
+    printSectionHeader('Demo 14: With Credentials Support');
+    await runWithCredentials();
 
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');

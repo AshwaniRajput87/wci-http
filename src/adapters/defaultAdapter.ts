@@ -64,12 +64,16 @@ export const defaultAdapter: HttpAdapter = async <T = any>(
   const enableDuplex =
     isNodeRuntime && hasBody && Boolean(onUploadProgress);
 
+  const credentialsMode: RequestCredentials = config.withCredentials ? 'include' : 'same-origin';
+
   const fetchRequest: HttpRequest & { duplex?: 'half' } = {
     url,
     method,
     headers: requestHeaders,
     signal,
     responseType,
+    credentials: credentialsMode,
+    withCredentials: config.withCredentials,
   };
 
   if (enableDuplex) {

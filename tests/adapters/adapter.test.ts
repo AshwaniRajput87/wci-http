@@ -159,6 +159,40 @@ describe('Adapter System', () => {
     expect(fetchInit.duplex).toBeUndefined();
   });
 
+  describe('withCredentials support', () => {
+    test('defaults to same-origin when withCredentials is undefined/false', async () => {
+      await wciHttp.request({ url: '/wc-default' });
+      const fetchInit = mockExecuteFetch.mock.calls[0][1];
+      expect(fetchInit.credentials).toBe('same-origin');
+    });
+
+    test('sets credentials include when withCredentials is true', async () => {
+      await wciHttp.request({ url: '/wc-include', withCredentials: true });
+      const fetchInit = mockExecuteFetch.mock.calls[0][1];
+      expect(fetchInit.credentials).toBe('include');
+    });
+
+    test('instance-level default withCredentials true applies to requests', async () => {
+      const inst = new WciHttp({ withCredentials: true });
+      await inst.request({ url: '/wc-instance' });
+      const fetchInit = mockExecuteFetch.mock.calls[0][1];
+      expect(fetchInit.credentials).toBe('include');
+    });
+
+    test('per-request override to false when instance default is true', async () => {
+      const inst = new WciHttp({ withCredentials: true });
+      await inst.request({ url: '/wc-override', withCredentials: false });
+      const fetchInit = mockExecuteFetch.mock.calls[0][1];
+      expect(fetchInit.credentials).toBe('same-origin');
+    });
+
+    test('does not crash in node runtime when withCredentials true', async () => {
+      await wciHttp.request({ url: '/wc-node', withCredentials: true });
+      const fetchInit = mockExecuteFetch.mock.calls[0][1];
+      expect(fetchInit.credentials).toBe('include');
+    });
+  });
+
   // Test 4: Custom adapter receives final config
   test('custom adapter should receive the fully processed AdapterConfig', async () => {
     const customAdapter = vi.fn(async (config: AdapterConfig) => {
