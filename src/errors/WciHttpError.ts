@@ -38,6 +38,11 @@ export interface WciHttpErrorOptions {
   config?: HttpRequest; // The original request configuration
   request?: HttpRequest; // The processed request config sent over the wire
   response?: Response; // The raw fetch response
+  retry?: {
+    attempted: number;
+    maxRetries: number;
+    exhausted: boolean;
+  };
 }
 
 /**
@@ -55,6 +60,11 @@ export class WciHttpError extends Error {
   readonly config?: HttpRequest;
   readonly request?: HttpRequest;
   readonly response?: Response;
+  readonly retry?: {
+    attempted: number;
+    maxRetries: number;
+    exhausted: boolean;
+  };
 
   constructor(options: WciHttpErrorOptions) {
     super(options.message);
@@ -70,6 +80,7 @@ export class WciHttpError extends Error {
     this.config = options.config;
     this.request = options.request;
     this.response = options.response;
+    this.retry = options.retry;
 
     Object.setPrototypeOf(this, WciHttpError.prototype);
   }
@@ -127,6 +138,7 @@ export class WciHttpError extends Error {
       config: Object.keys(serializedConfig).length > 0 ? serializedConfig : undefined,
       request: Object.keys(serializedRequest).length > 0 ? serializedRequest : undefined,
       response: Object.keys(serializedResponse).length > 0 ? serializedResponse : undefined,
+      retry: this.retry,
     };
   }
 }

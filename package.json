@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
+    "demo:retry": "tsx src/demo/retry-demo.ts",
     "license": "MIT"
   },
   "devDependencies": {

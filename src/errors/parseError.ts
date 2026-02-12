@@ -56,3 +56,32 @@ export const parseError = (error: unknown): ParsedError => {
     original: error,
   };
 };
+
+/**
+ * Checks if a WciHttpError represents a network-related error.
+ * This includes timeouts, aborted requests (not user-initiated), and general network failures.
+ *
+ * @param error The WciHttpError to check.
+ * @returns True if the error is a network error, false otherwise.
+ */
+export const isNetworkError = (error: WciHttpError): boolean => {
+  if (error.timeout === true) {
+    return true;
+  }
+
+  // Explicit network-related error codes
+  if (
+    error.code === 'ABORTED' || // A network layer abort, not necessarily user-initiated
+    error.code === 'TIMEOUT' ||
+    error.code === 'NETWORK_ERROR'
+  ) {
+    return true;
+  }
+
+  // If there's no status code, it's often a network issue (e.g., connection refused)
+  if (error.status === undefined) {
+    return true;
+  }
+
+  return false;
+};

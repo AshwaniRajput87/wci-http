@@ -16,6 +16,7 @@ import { run as runInstanceCreate } from './instance-create';
 import { run as runAdapterSystem } from './9-adapter-system'; // New import
 import { run as runMultipartUpload } from './multipart-upload';
 import { run as runProgressTracking } from './11-progress-tracking'; // New import
+import { run as runAdvancedRetry } from './13-advanced-retry';
 import { WciHttp } from '../client/WciHttp';
 import type { HttpAdapter } from '../types/adapter.types';
 
@@ -68,6 +69,9 @@ async function mainDemoOrchestrator() {
     printSectionHeader('Demo 12: Method-Specific Defaults');
     await runMethodDefaultsDemo();
 
+    printSectionHeader('Demo 13: Advanced Retry Configuration');
+    await runAdvancedRetry();
+
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');
     console.error(error);
@@ -80,7 +84,7 @@ async function mainDemoOrchestrator() {
 // Execute the orchestrator
 mainDemoOrchestrator();
 
-const runMethodDefaultsDemo = async () => {
+async function runMethodDefaultsDemo() {
   const client = new WciHttp({
     timeout: 5000,
     headers: { 'X-Global': 'yes' },
@@ -109,4 +113,4 @@ const runMethodDefaultsDemo = async () => {
 
   await client.get('/posts/1', { adapter: demoAdapter });
   await client.post('/posts', { title: 'demo' }, { adapter: demoAdapter });
-};
+}

@@ -6,8 +6,11 @@ export const DEFAULT_WCI_HTTP_CONFIG: WciHttpConfig = {
     timeout: 0, // 0 means no timeout
     method: 'get',
     retry: {
-        attempts: 0, // No retries by default
-        delay: 1000, // 1 second delay
+        retries: 0,
+        delay: 1000,
+        backoff: "fixed",
+        retryOn: [500, 502, 503, 504],
+        retryOnNetworkError: true,
     },
     logging: {
         level: 'none',

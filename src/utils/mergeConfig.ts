@@ -114,18 +114,17 @@ const flattenHeaders = (headers: any, method?: string) => {
 };
 
 const normalizeRetry = (base: any, source: any) => {
-  const defaultRetry = { attempts: 0, delay: 1000 };
-  const baseObj = isPlainObject(base) ? base : defaultRetry;
+  const baseObj = isPlainObject(base) ? base : undefined;
 
   if (source === undefined) return baseObj;
   if (source === null) return null;
   if (typeof source === 'boolean') {
-    return source ? baseObj : { attempts: 0, delay: 0 };
+    return source ? baseObj : undefined;
   }
 
   if (isPlainObject(source)) {
     return {
-      ...baseObj,
+      ...(baseObj ?? {}),
       ...source,
     };
   }
@@ -194,6 +193,9 @@ export const mergeWciConfig = (
           break;
         case 'logging':
           result.logging = normalizeLogging(result.logging, value);
+          break;
+        case 'signal':
+          result.signal = value;
           break;
         case 'params':
         case 'query':

@@ -91,12 +91,19 @@ export interface HttpRequest {
   credentials?: RequestCredentials;
   logger?: WciLogger;
   signal?: AbortSignal;
-  retry?: boolean;
-  retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
   transformRequest?: TransformRequest | TransformRequest[];
   adapter?: HttpAdapter;
+
+  // Retry configuration
+  retry?: {
+    retries: number;
+    delay: number;
+    backoff: "fixed" | "exponential";
+    retryOn: number[]; // HTTP status codes
+    retryOnNetworkError: boolean;
+  };
 }
 
 export type HttpRequestOptions =
@@ -213,8 +220,11 @@ export interface WciHttpConfig {
 
   // Retry configuration
   retry?: {
-    attempts: number;
+    retries: number;
     delay: number;
+    backoff: "fixed" | "exponential";
+    retryOn: number[]; // HTTP status codes
+    retryOnNetworkError: boolean;
   };
 
   // Logging configuration
