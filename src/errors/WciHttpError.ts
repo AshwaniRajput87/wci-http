@@ -35,8 +35,8 @@ export interface WciHttpErrorOptions {
   url?: string;
   retryable?: boolean;
   timeout?: boolean;
-  config?: HttpRequest; // The original request configuration
-  request?: HttpRequest; // The processed request config sent over the wire
+  config?: Partial<HttpRequest>; // The original request configuration
+  request?: Partial<HttpRequest>; // The processed request config sent over the wire
   response?: Response; // The raw fetch response
   retry?: {
     attempted: number;
@@ -57,8 +57,8 @@ export class WciHttpError extends Error {
   readonly timeout?: boolean;
   readonly cause?: unknown;
   readonly isWciHttpError = true;
-  readonly config?: HttpRequest;
-  readonly request?: HttpRequest;
+  readonly config?: Partial<HttpRequest>;
+  readonly request?: Partial<HttpRequest>;
   readonly response?: Response;
   readonly retry?: {
     attempted: number;
@@ -157,4 +157,3 @@ export function isWciHttpError(error: any): error is WciHttpError {
     (error as WciHttpError).isWciHttpError === true
   );
 }
-

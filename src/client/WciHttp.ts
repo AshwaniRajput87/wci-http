@@ -2,6 +2,7 @@ import {
   WciHttpConfig,
   HttpResponse,
   HttpLogEventType,
+  HttpRequest, // Added HttpRequest import
 } from '../types/http.types';
 import { dispatchRequest } from './dispatchRequest';
 import { mergeWciConfig } from '../utils/mergeConfig';
@@ -71,12 +72,12 @@ const attachAbortListener = (
   }
 
   const previousOnAbort = signal.onabort;
-  signal.onabort = ((event?: Event) => {
+  signal.onabort = ((event: Event) => {
     callback();
     if (typeof previousOnAbort === 'function') {
       previousOnAbort.call(signal, event);
     }
-  }) as ((this: AbortSignal, event?: Event) => any);
+  }) as ((this: AbortSignal, event: Event) => any);
 
   return () => {
     signal.onabort = previousOnAbort;
@@ -84,7 +85,7 @@ const attachAbortListener = (
 };
 
 const createAbortError = (
-  config: WciHttpConfig,
+  config: HttpRequest,
   attemptsMade: number,
   maxRetries: number,
   cause?: unknown,
@@ -145,26 +146,36 @@ const waitForRetryDelay = async (
  */
 async function executeWithRetry<T = any>(
   config: WciHttpConfig,
-  adapterExecutor: (config: WciHttpConfig) => Promise<HttpResponse<T>>,
+  adapterExecutor: (config: HttpRequest) => Promise<HttpResponse<T>>,
 ): Promise<HttpResponse<T>> {
-  const retryConfig = config.retry;
+  if (!config.url) {
+    throw new WciHttpError({
+      code: httpErrorCodes.INVALID_REQUEST_CONFIG,
+      message: 'Request URL is missing.',
+      config,
+    });
+  }
+  type ValidatedRequestConfig = WciHttpConfig & { url: string };
+  const requestConfig = config as ValidatedRequestConfig;
+
+  const retryConfig = requestConfig.retry;
   const maxRetries = retryConfig?.retries ?? 0;
   const totalAttempts = maxRetries + 1;
-  const loggingLevel = config.logging?.level ?? LogLevel.NONE;
-  const logger = config.logger;
+  const loggingLevel = requestConfig.logging?.level ?? LogLevel.NONE;
+  const logger = requestConfig.logger;
 
   for (let attemptIndex = 0; attemptIndex < totalAttempts; attemptIndex++) {
     const attemptNumber = attemptIndex + 1;
 
     // Abort safety before executing attempt
-    if (config.signal?.aborted) {
-      throw createAbortError(config, attemptNumber - 1, maxRetries);
+    if (requestConfig.signal?.aborted) {
+      throw createAbortError(requestConfig, attemptNumber - 1, maxRetries);
     }
 
     try {
       // Shallow clone to avoid mutating the base config across attempts
-      const attemptConfig = { ...config } as WciHttpConfig;
-      return await adapterExecutor(attemptConfig);
+      const attemptConfig = { ...requestConfig } as ValidatedRequestConfig;
+      return await adapterExecutor(attemptConfig as HttpRequest);
     } catch (err) {
       if (!(err instanceof WciHttpError)) {
         throw err;
@@ -173,39 +184,47 @@ async function executeWithRetry<T = any>(
       const retryable = shouldRetry(err, retryConfig);
       const exhausted = !retryable ? false : attemptNumber > maxRetries;
 
-      err.retry = {
+      const updatedRetry = {
         attempted: attemptNumber,
         maxRetries,
         exhausted,
       };
 
+      const newError = new WciHttpError({
+        ...err,
+        code: err.code,
+        message: err.message,
+        retry: updatedRetry,
+      });
+
       // Abort errors short-circuit immediately
-      if (err.code === httpErrorCodes.ABORTED || config.signal?.aborted) {
-        throw err;
+      if (newError.code === httpErrorCodes.ABORTED || requestConfig.signal?.aborted) {
+        throw newError;
       }
 
       if (exhausted || !retryable) {
         if (loggingLevel !== LogLevel.NONE) {
-          const message = `Request failed after ${attemptNumber} attempts. Retry metadata: ${JSON.stringify(err.retry)}`;
+          const message = `Request failed after ${attemptNumber} attempts. Retry metadata: ${JSON.stringify(newError.retry)}`;
           if (logger) {
             logger.error({
               type: HttpLogEventType.REQUEST_ERROR,
-              level: 'error',
+              level: LogLevel.ERROR,
               category: RETRY_EVENT_CATEGORY,
               message,
-              url: config.url,
-              method: config.method,
+              url: requestConfig.url,
+              method: requestConfig.method,
               attempt: attemptNumber,
               maxAttempts: maxRetries,
-              error: err,
-              retry: err.retry,
+              error: newError,
+              retry: newError.retry,
             });
           } else {
             console.error(message);
           }
         }
-        throw err;
+        throw newError;
       }
+
 
       // Prepare next retry
       const delayMs = calculateDelay(attemptNumber, retryConfig!.delay, retryConfig!.backoff);
@@ -216,11 +235,11 @@ async function executeWithRetry<T = any>(
         if (logger) {
           logger.info({
             type: HttpLogEventType.RETRY,
-            level: 'info',
+            level: LogLevel.INFO,
             category: RETRY_EVENT_CATEGORY,
             message,
-            url: config.url,
-            method: config.method,
+            url: requestConfig.url,
+            method: requestConfig.method,
             attempt: attemptNumber,
             maxAttempts: maxRetries,
             delay: delayMs,
@@ -232,18 +251,25 @@ async function executeWithRetry<T = any>(
       }
 
       try {
-        await waitForRetryDelay(delayMs, config.signal, () => {
-          throw createAbortError(config, attemptNumber, maxRetries, err);
+        await waitForRetryDelay(delayMs, requestConfig.signal, () => {
+          throw createAbortError(requestConfig, attemptNumber, maxRetries, err);
         });
       } catch (abortReason: any) {
-        const abortError = abortReason instanceof WciHttpError
+        let abortError = abortReason instanceof WciHttpError
           ? abortReason
-          : createAbortError(config, attemptNumber, maxRetries, abortReason);
-        abortError.retry = {
-          attempted: attemptNumber,
-          maxRetries,
-          exhausted: false,
-        };
+          : createAbortError(requestConfig, attemptNumber, maxRetries, abortReason);
+
+        // Create a new error with updated retry info
+        abortError = new WciHttpError({
+          ...abortError,
+          code: abortError.code,
+          message: abortError.message,
+          retry: {
+            attempted: attemptNumber,
+            maxRetries,
+            exhausted: false,
+          },
+        });
         throw abortError;
       }
     }
@@ -252,7 +278,7 @@ async function executeWithRetry<T = any>(
   throw new WciHttpError({
     code: httpErrorCodes.UNKNOWN_ERROR,
     message: 'Unexpected retry termination',
-    config,
+    config: requestConfig,
   });
 }
 
@@ -291,7 +317,8 @@ export class WciHttp {
       configsToMerge.push(nonMethodSpecificInstanceConfig);
     }
     
-    this.config = mergeWciConfig(...configsToMerge);
+    const filteredConfigs = configsToMerge.filter(c => c !== undefined && c !== null);
+    this.config = mergeWciConfig(...(filteredConfigs as Array<Partial<WciHttpConfig> & Record<string, any>>));
 
     this.interceptors = {
       request: new InterceptorManager<WciHttpConfig>(),
@@ -304,7 +331,17 @@ export class WciHttp {
   }
 
   public create(config?: WciHttpConfig): WciHttp {
-    return new WciHttp(mergeWciConfig(this.config, config));
+    return new WciHttp(mergeWciConfig(this.config, config ?? {}));
+  }
+
+  /**
+   * Define or update defaults for a specific HTTP method on this instance.
+   * These defaults sit between the instance config and per-request overrides.
+   */
+  public setMethodDefaults(method: string, config: Partial<WciHttpConfig>): this {
+    const key = method.toLowerCase();
+    this.methodDefaults[key] = config;
+    return this;
   }
 
   public async request<T = any>(requestConfig: WciHttpConfig): Promise<HttpResponse<T>> {
@@ -326,6 +363,10 @@ export class WciHttp {
       ...this.interceptors.response.getHandlers(),
       ...(mergedConfig.responseInterceptors ?? []),
     ];
+
+    // Expose the full interceptor stacks on the config that flows to the adapter (useful for tests/introspection).
+    mergedConfig.requestInterceptors = requestInterceptors.filter(Boolean) as any;
+    mergedConfig.responseInterceptors = responseInterceptors.filter(Boolean) as any;
 
     const adapterExecutor = async (attemptConfig: WciHttpConfig): Promise<HttpResponse<T>> => {
       // apply request interceptors

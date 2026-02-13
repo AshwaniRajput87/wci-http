@@ -75,6 +75,13 @@ export type ParamsSerializer = (
   options?: ParamsSerializerOptions,
 ) => string;
 
+// Lightweight progress event shape shared by upload/download helpers
+export type ProgressEvent = {
+  loaded: number;
+  total?: number;
+  progress?: number; // 0-1
+};
+
 export interface HttpRequest {
   url: string;
   method?: HttpMethod;

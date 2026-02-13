@@ -13,7 +13,6 @@ import { createHttpErrorCodes, HttpErrorCodes } from '../errors/httpErrorCodes';
 import { defaultAdapterResolver } from '../adapters/adapterResolver';
 import { HttpAdapter, AdapterConfig, AdapterResponse } from '../types/adapter.types';
 import { serializeRequestBody } from '../utils/bodySerializerzUtils';
-import { parseResponseBody } from '../utils/parseResponseBody';
 import { createTimeoutController } from '../requests/timeoutController';
 
 const httpErrorCodes: HttpErrorCodes = createHttpErrorCodes();

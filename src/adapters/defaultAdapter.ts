@@ -25,7 +25,7 @@ export const defaultAdapter: HttpAdapter = async <T = any>(
   const { fetcher = fetch, signal, url, method, headers, body, responseType, onUploadProgress, onDownloadProgress, data } = config;
 
   let requestBody: BodyInit | undefined = body ?? (data as BodyInit | undefined);
-  let requestHeaders = { ...headers };
+  const requestHeaders = { ...headers };
 
   const isUserAborted = signal?.aborted === true || config.signal?.aborted === true;
 

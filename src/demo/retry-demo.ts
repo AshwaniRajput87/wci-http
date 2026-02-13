@@ -9,7 +9,7 @@ const httpErrorCodes = createHttpErrorCodes();
 // --- Mock Adapter for Demo ---
 let mockAdapterCallCount = 0;
 let mockAdapterFailures: { status?: number; isNetworkError?: boolean }[] = [];
-let mockAdapterSuccessResponse: AdapterResponse<any> = {
+const mockAdapterSuccessResponse: AdapterResponse<any> = {
   data: 'Success!',
   status: 200,
   statusText: 'OK',

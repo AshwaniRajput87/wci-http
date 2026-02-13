@@ -18,6 +18,7 @@ import { run as runMultipartUpload } from './multipart-upload';
 import { run as runProgressTracking } from './11-progress-tracking'; // New import
 import { run as runAdvancedRetry } from './13-advanced-retry';
 import { run as runWithCredentials } from './14-with-credentials';
+import { run as runFullDeepMerge } from './15-full-deep-config-merge';
 import { WciHttp } from '../client/WciHttp';
 import type { HttpAdapter } from '../types/adapter.types';
 
@@ -75,6 +76,9 @@ async function mainDemoOrchestrator() {
 
     printSectionHeader('Demo 14: With Credentials Support');
     await runWithCredentials();
+
+    printSectionHeader('Demo 15: Full Deep Config Merge');
+    await runFullDeepMerge();
 
   } catch (error) {
     console.error('\n!!! An error occurred during demo execution:');

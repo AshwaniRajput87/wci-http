@@ -1,4 +1,3 @@
-import { DEFAULT_WCI_HTTP_CONFIG } from '../../src/client/httpConfig'
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WciHttp } from '../../src/client/WciHttp'
 import { dispatchRequest } from '../../src/client/dispatchRequest'
@@ -21,7 +20,7 @@ vi.mock('../../src/client/dispatchRequest', () => ({
 
 // Mock sleep function for faster tests
 vi.mock('../../src/utils/sleepUtils', () => ({
-  sleep: vi.fn((ms: number) => Promise.resolve()), // Immediately resolve sleep
+  sleep: vi.fn((_ms: number) => Promise.resolve()), // Immediately resolve sleep
 }));
 
 describe('WciHttp', () => {
@@ -351,12 +350,10 @@ describe('WciHttp', () => {
     });
 
     test('should handle AbortController cancellation during retry delays with abort error', async () => {
-      let callCount = 0;
       const totalRetries = 2;
       const abortController = new AbortController();
 
       mockDispatchRequestImpl = async (config: WciHttpConfig) => {
-        callCount++;
         // always fail with network error to trigger retry delay
         throw new WciHttpError({
           code: httpErrorCodes.NETWORK_ERROR,

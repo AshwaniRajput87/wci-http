@@ -1,10 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { WciHttp } from '../../src/client/WciHttp';
-import { HttpAdapter, AdapterConfig, AdapterResponse } from '../../src/types/adapter.types';
+import { HttpAdapter, AdapterConfig } from '../../src/types/adapter.types'; // Removed AdapterResponse
 import { defaultAdapter } from '../../src/adapters/defaultAdapter';
 import { defaultAdapterResolver } from '../../src/adapters/adapterResolver';
-import { HttpResponse, WciHttpConfig } from '../../src/types/http.types';
-import { dispatchRequest } from '../../src/client/dispatchRequest';
+import { WciHttpConfig } from '../../src/types/http.types'; // Removed HttpResponse
 import { WciHttpError } from '../../src/errors/WciHttpError'; // NEW: Import WciHttpError
 
 // Import the actual modules so vi.mocked can correctly type them
@@ -32,7 +31,7 @@ describe('Adapter System', () => {
 
     // Reset mocks and provide default mock implementations
     mockExecuteFetch.mockClear();
-    mockExecuteFetch.mockImplementation(async (fetcher, fetchConfig, body, signal) => {
+    mockExecuteFetch.mockImplementation(async (fetcher, fetchConfig, _body, _signal) => {
       // Create a Headers object from the plain object received
       const responseHeaders = new Headers();
       for (const key in fetchConfig.headers) {
@@ -234,7 +233,7 @@ describe('Adapter System', () => {
 
   // Test 5: Error propagation through adapter
   test('errors thrown by adapter should be normalized by the core pipeline', async () => {
-    const customErrorAdapter: HttpAdapter = async (config) => {
+    const customErrorAdapter: HttpAdapter = async (_config) => {
       throw new TypeError('Simulated adapter network error');
     };
 

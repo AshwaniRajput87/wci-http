@@ -41,6 +41,7 @@ export const createHttpErrorCodes = (prefix = "WCI") => {
     GATEWAY_TIMEOUT: create(domain, HTTP_ERROR_KEYS.GATEWAY_TIMEOUT),
     INVALID_JSON: create(domain, HTTP_ERROR_KEYS.INVALID_JSON),
     INVALID_RESPONSE: create(domain, HTTP_ERROR_KEYS.INVALID_RESPONSE),
+    INVALID_REQUEST_CONFIG: create(domain, HTTP_ERROR_KEYS.INVALID_REQUEST_CONFIG),
     UNKNOWN_ERROR: create(domain, HTTP_ERROR_KEYS.UNKNOWN_ERROR),
   };
 };

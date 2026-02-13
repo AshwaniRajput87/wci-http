@@ -1,4 +1,3 @@
-import type { HttpRequest } from "../types/http.types";
 import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 import { findHeader } from "./mergeHeadersUtils";
 
@@ -21,8 +20,13 @@ const isFormData = (value: unknown): value is FormData => {
   return isTaggedFormData;
 };
 
+type BodySerializableRequest = {
+  body?: unknown;
+  headers?: Record<string, any>;
+};
+
 export const serializeRequestBody = (
-  request: HttpRequest,
+  request: BodySerializableRequest,
 ): SerializedBodyResult => {
   const { body, headers = {} } = request;
 
