@@ -36,9 +36,11 @@ export const serializeRequestBody = (
 
   const contentType = findHeader("Content-Type", headers);
 
-  // For FormData, let the browser set the Content-Type header. Return empty headers.
+  // For FormData, let the underlying adapter set the Content-Type header with the correct boundary.
+  // We return `undefined` for headers here to ensure `dispatchRequest` does not overwrite
+  // any auto-generated 'Content-Type' header that the adapter might add.
   if (isFormData(body)) {
-    return { body, headers: {} };
+    return { body, headers: undefined };
   }
 
   if (body instanceof URLSearchParams) {
