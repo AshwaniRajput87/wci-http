@@ -40,7 +40,11 @@ export const serializeRequestBody = (
   // We return `undefined` for headers here to ensure `dispatchRequest` does not overwrite
   // any auto-generated 'Content-Type' header that the adapter might add.
   if (isFormData(body)) {
-    return { body, headers: undefined };
+    // Returning an empty object keeps existing headers intact (e.g., user-provided
+    // Content-Type) while signalling to callers that the serializer itself did not
+    // add or modify headers. Using `{}` instead of `undefined` avoids consumers
+    // interpreting this as "remove headers" which the tests expect.
+    return { body, headers: {} };
   }
 
   if (body instanceof URLSearchParams) {

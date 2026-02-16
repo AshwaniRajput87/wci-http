@@ -13,9 +13,12 @@ export class InterceptorManager<V> {
     rejected?: (error: any) => any,
     runWhen?: (config: WciHttpConfig) => boolean,
   ): number {
+    // If only one handler is supplied, keep Axios-style fulfilled behavior but also
+    // store it as a fallback rejected handler so error-only registrations still work.
+    const effectiveRejected = rejected ?? fulfilled;
     this.handlers.push({
       fulfilled,
-      rejected,
+      rejected: effectiveRejected,
       runWhen,
     });
     return this.handlers.length - 1;

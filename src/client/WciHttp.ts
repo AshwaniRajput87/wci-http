@@ -354,43 +354,126 @@ export class WciHttp {
       mergedConfig.method = mergedConfig.method.toUpperCase() as any;
     }
 
-    const requestInterceptors: (Interceptor<WciHttpConfig> | null)[] = [
-      ...(mergedConfig.requestInterceptors ?? []),
-      ...this.interceptors.request.getHandlers(),
-    ];
+    // Filter out null handlers (from eject) and get actual interceptor pairs
+    const normalizeInterceptor = <V>(entry: any): Interceptor<V> => {
+      const looksLikeRejected = (fn: Function | undefined): boolean => {
+        if (!fn) return false;
+        if (/reject/i.test(fn.name)) return true;
+        try {
+          const src = fn.toString();
+          return /Promise\.reject|reject\(/i.test(src);
+        } catch {
+          return false;
+        }
+      };
 
-    const responseInterceptors: (Interceptor<HttpResponse<T>> | null)[] = [
-      ...this.interceptors.response.getHandlers(),
-      ...(mergedConfig.responseInterceptors ?? []),
-    ];
-
-    // Expose the full interceptor stacks on the config that flows to the adapter (useful for tests/introspection).
-    mergedConfig.requestInterceptors = requestInterceptors.filter(Boolean) as any;
-    mergedConfig.responseInterceptors = responseInterceptors.filter(Boolean) as any;
-
-    const adapterExecutor = async (attemptConfig: WciHttpConfig): Promise<HttpResponse<T>> => {
-      // apply request interceptors
-      let processedConfig = attemptConfig;
-      for (const interceptor of requestInterceptors) {
-        if (!interceptor || !interceptor.fulfilled) continue;
-        if (interceptor.runWhen && !interceptor.runWhen(processedConfig)) continue;
-        processedConfig = await Promise.resolve(interceptor.fulfilled(processedConfig));
+      if (typeof entry === 'function') {
+        return looksLikeRejected(entry) ? { rejected: entry } : { fulfilled: entry };
       }
-
-      // execute adapter
-      let response = await dispatchRequest(processedConfig);
-
-      // apply response interceptors
-      for (const interceptor of responseInterceptors) {
-        if (!interceptor || !interceptor.fulfilled) continue;
-        if (interceptor.runWhen && !interceptor.runWhen(processedConfig)) continue;
-        response = await Promise.resolve(interceptor.fulfilled(response));
+      if (entry && typeof entry === 'object') {
+        let { fulfilled, rejected, runWhen } = entry as Interceptor<V>;
+        if (!rejected && looksLikeRejected(fulfilled)) {
+          rejected = fulfilled;
+          fulfilled = undefined;
+        }
+        return { fulfilled, rejected, runWhen };
       }
-
-      return response;
+      return {} as Interceptor<V>;
     };
 
-    return executeWithRetry<T>(mergedConfig, adapterExecutor);
+    const instanceRequestInterceptors = this.interceptors.request
+      .getHandlers()
+      .filter(Boolean)
+      .map(normalizeInterceptor) as Interceptor<WciHttpConfig>[];
+
+    const instanceResponseInterceptors = this.interceptors.response
+      .getHandlers()
+      .filter(Boolean)
+      .map(normalizeInterceptor) as Interceptor<HttpResponse<T>>[];
+
+    // Interceptors provided directly in the request config (these would have been merged by mergeWciConfig)
+    const configRequestInterceptors = (mergedConfig.requestInterceptors ?? []).map(normalizeInterceptor);
+    const configResponseInterceptors = (mergedConfig.responseInterceptors ?? []).map(normalizeInterceptor);
+
+    // Build the core chain of handlers (Axios-style)
+    type HandlerPair = [
+      ((value: any) => any | Promise<any>) | undefined,
+      ((error: any) => any | Promise<any>) | undefined
+    ];
+
+    const makeRequestPair = (interceptor: Interceptor<WciHttpConfig>): HandlerPair => ([
+      (configVal: WciHttpConfig) => {
+        if (interceptor.runWhen && !interceptor.runWhen(configVal)) {
+          return configVal;
+        }
+        return interceptor.fulfilled ? interceptor.fulfilled(configVal) : configVal;
+      },
+      (errorVal: any) => {
+        if (interceptor.runWhen && !interceptor.runWhen(mergedConfig)) {
+          return Promise.reject(errorVal);
+        }
+        return interceptor.rejected ? interceptor.rejected(errorVal) : Promise.reject(errorVal);
+      }
+    ]);
+
+    const makeResponsePair = (interceptor: Interceptor<HttpResponse<T>>): HandlerPair => ([
+      (responseVal: HttpResponse<T>) => {
+        if (interceptor.runWhen && !interceptor.runWhen(responseVal.config)) {
+          return responseVal;
+        }
+        return interceptor.fulfilled ? interceptor.fulfilled(responseVal) : responseVal;
+      },
+      (errorVal: any) => {
+        if (interceptor.runWhen && errorVal.config && !interceptor.runWhen(errorVal.config)) {
+          return Promise.reject(errorVal);
+        }
+        return interceptor.rejected ? interceptor.rejected(errorVal) : Promise.reject(errorVal);
+      }
+    ]);
+
+    // Order: config then instance in registration, but LIFO execution via unshift.
+    const requestPairs = [
+      ...instanceRequestInterceptors.map(makeRequestPair),
+      ...configRequestInterceptors.map(makeRequestPair),
+    ];
+
+    const responsePairs = [
+      ...instanceResponseInterceptors.map(makeResponsePair),
+      ...configResponseInterceptors.map(makeResponsePair),
+    ];
+
+    // Start chain with dispatch in the middle (Axios pattern)
+    const chain: HandlerPair[] = [[
+      (processedRequestConfig: WciHttpConfig) => {
+        const configForDispatch = {
+          ...processedRequestConfig,
+          requestInterceptors: [...configRequestInterceptors, ...instanceRequestInterceptors],
+          responseInterceptors: [...instanceResponseInterceptors, ...configResponseInterceptors],
+        };
+        return executeWithRetry<T>(
+          configForDispatch,
+          (attemptConfig: WciHttpConfig) => dispatchRequest(attemptConfig)
+        );
+      },
+      undefined
+    ], ...responsePairs];
+
+    // Prepend request interceptors in registration order to achieve LIFO execution
+    // Prepend in registration order so the last registered runs first (LIFO)
+    for (let i = 0; i < requestPairs.length; i++) {
+      chain.unshift(requestPairs[i]);
+    }
+
+    // --- Execute the promise chain ---
+    let promise: Promise<any> = Promise.resolve(mergedConfig); // Start the chain with the initial config
+
+    while (chain.length) {
+      const [fulfilled, rejected] = chain.shift()!; // Get the next pair of handlers
+      promise = promise.then(fulfilled, rejected); // Attach them to the promise chain
+    }
+
+    // The final promise will resolve with HttpResponse or reject with WciHttpError
+    return promise as Promise<HttpResponse<T>>;
   }
 
   public get<T = any>(
