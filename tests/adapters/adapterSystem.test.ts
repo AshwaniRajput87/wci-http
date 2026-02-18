@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpAdapter, AdapterConfig, AdapterResponse } from '../../src/types/adapter.types';
+import { HttpAdapter, AdapterConfig } from '../../src/types/adapter.types';
 import { defaultAdapter } from '../../src/adapters/defaultAdapter';
 import { defaultAdapterResolver } from '../../src/adapters/adapterResolver';
 import { WciHttpError } from '../../src/errors/WciHttpError';

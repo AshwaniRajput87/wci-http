@@ -31,3 +31,6 @@ export * from './errors/httpErrorCodes'
 // Export utilities
 export { buildURL } from './utils/buildURL'
 export { defaultParamsSerializer as paramsSerializer } from './utils/paramsSerializer'
+
+export * as multipart from './multipart'
+export * as progress from './progress'

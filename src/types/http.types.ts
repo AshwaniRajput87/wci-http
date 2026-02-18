@@ -75,6 +75,13 @@ export type ParamsSerializer = (
   options?: ParamsSerializerOptions,
 ) => string;
 
+// Lightweight progress event shape shared by upload/download helpers
+export type ProgressEvent = {
+  loaded: number;
+  total?: number;
+  progress?: number; // 0-1
+};
+
 export interface HttpRequest {
   url: string;
   method?: HttpMethod;
@@ -89,14 +96,22 @@ export interface HttpRequest {
   params?: Record<string, any>;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   logger?: WciLogger;
   signal?: AbortSignal;
-  retry?: boolean;
-  retryDelayMs?: number;
   validateStatus?: (status: number) => boolean;
   transformResponse?: ((...args: any[]) => any) | ((...args: any[]) => any)[];
   transformRequest?: TransformRequest | TransformRequest[];
   adapter?: HttpAdapter;
+
+  // Retry configuration
+  retry?: {
+    retries: number;
+    delay: number;
+    backoff: "fixed" | "exponential";
+    retryOn: number[]; // HTTP status codes
+    retryOnNetworkError: boolean;
+  };
 }
 
 export type HttpRequestOptions =
@@ -108,6 +123,7 @@ export interface HttpClientConfig {
   headers?: HttpHeaders;
   timeout?: number;
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   params?: HttpQuery;
   fetcher?: HttpClientFetcher;
   method?: string;
@@ -204,6 +220,7 @@ export interface WciHttpConfig {
   paramsSerializer?: ParamsSerializer;
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer' | 'stream';
   credentials?: RequestCredentials;
+  withCredentials?: boolean;
   logger?: WciLogger;
   signal?: AbortSignal;
   validateStatus?: (status: number) => boolean;
@@ -213,8 +230,11 @@ export interface WciHttpConfig {
 
   // Retry configuration
   retry?: {
-    attempts: number;
+    retries: number;
     delay: number;
+    backoff: "fixed" | "exponential";
+    retryOn: number[]; // HTTP status codes
+    retryOnNetworkError: boolean;
   };
 
   // Logging configuration

@@ -5,7 +5,7 @@
  * default adapter usage and custom adapter injection.
  */
 import { httpClient } from '../client/httpClient';
-import { WciHttp, WciHttpConfig, HttpResponse } from '../client/WciHttp';
+import { WciHttp, HttpResponse } from '../client/WciHttp';
 import { HttpAdapter, AdapterConfig, AdapterResponse } from '../types/adapter.types';
 import { logHttpError } from './httpErrorLogger';
 import { WciHttpError } from '../errors/WciHttpError';

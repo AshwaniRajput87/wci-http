@@ -6,7 +6,7 @@
  * should be implemented inside adapters.
  */
 
-import { WciHttpConfig, HttpResponse } from './http.types';
+import { WciHttpConfig, HttpMethod } from './http.types';
 
 /**
  * Adapter configuration object that represents the fully merged
@@ -15,7 +15,7 @@ import { WciHttpConfig, HttpResponse } from './http.types';
 export interface AdapterConfig extends WciHttpConfig {
   // Adapter receives the final config after all merging and transforms
   url: string;
-  method: string;
+  method: HttpMethod;
   headers: Record<string, string>;
   body?: unknown;
   timeoutMs?: number;

@@ -60,8 +60,7 @@ instance.interceptors.response.use((response: HttpResponse) => {
 });
 
 async function runDemos() {
-  console.log('
---- Making a GET request (Interceptor 3 should be skipped) ---');
+  console.log('\n--- Making a GET request (Interceptor 3 should be skipped) ---');
   try {
     const getResponse = await instance.request({
       url: 'https://jsonplaceholder.typicode.com/todos/1',
@@ -75,8 +74,7 @@ async function runDemos() {
     console.error('GET Request failed:', error);
   }
 
-  console.log('
---- Making a POST request (Interceptor 3 should run) ---');
+  console.log('\n--- Making a POST request (Interceptor 3 should run) ---');
   try {
     const postResponse = await instance.request({
       url: 'https://jsonplaceholder.typicode.com/posts',

@@ -1,7 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { WciHttp } from '../../src/client/WciHttp';
 import { defaultAdapter } from '../../src/adapters/defaultAdapter';
-import { WciHttpConfig, HttpResponse } from '../../src/types/http.types';
+import { WciHttpConfig } from '../../src/types/http.types';
 import { executeFetch } from '../../src/requests/executeFetch';
 import { TextEncoder } from 'util'; // For Node.js environment
 import { WciHttpError } from '../../src/errors/WciHttpError';
@@ -12,12 +11,12 @@ vi.mock('../../src/requests/executeFetch', () => ({
 }));
 
 describe('Default Adapter Progress Handling', () => {
-  let wciHttp: WciHttp;
+  // let wciHttp: WciHttp; // Removed: wciHttp is not used
   let mockExecuteFetch: ReturnType<typeof vi.fn>;
   let abortController: AbortController;
 
   beforeEach(() => {
-    wciHttp = new WciHttp();
+    // wciHttp = new WciHttp(); // Removed: wciHttp is not used
     mockExecuteFetch = vi.mocked(executeFetch);
     abortController = new AbortController();
 
@@ -56,9 +55,9 @@ describe('Default Adapter Progress Handling', () => {
       // --- Simulate Download Response ---
       const responseHeaders = new Headers();
       let mockResponseBody: string | ReadableStream<Uint8Array> | Uint8Array;
-      let mockStatus = 200;
-      let mockStatusText = 'OK';
-      let mockContentType = 'application/json';
+      const mockStatus = 200; // Changed to const
+      const mockStatusText = 'OK'; // Changed to const
+      // Removed: let mockContentType = 'application/json'; // Removed: not used
 
       // Determine response based on request.url (simple routing for tests)
       if (request.url === '/download' || request.url === '/json-data' || request.url === '/upload') {
@@ -66,7 +65,7 @@ describe('Default Adapter Progress Handling', () => {
         const jsonChunks = jsonContent.match(/.{1,10}/g)!.map(s => new TextEncoder().encode(s)); // Split into chunks
         responseHeaders.set('Content-Length', String(jsonContent.length));
         responseHeaders.set('Content-Type', 'application/json');
-        mockContentType = 'application/json';
+        // mockContentType = 'application/json'; // Removed: not used
 
         mockResponseBody = new ReadableStream({
           async pull(controller) {
@@ -82,7 +81,7 @@ describe('Default Adapter Progress Handling', () => {
               controller.close();
             }
           },
-          cancel(reason) {
+          cancel(_reason) { // Renamed reason to _reason
             // Stream cancelled
           }
         });
@@ -91,7 +90,7 @@ describe('Default Adapter Progress Handling', () => {
         const textChunks = textContent.match(/.{1,10}/g)!.map(s => new TextEncoder().encode(s));
         responseHeaders.set('Content-Length', String(textContent.length));
         responseHeaders.set('Content-Type', 'text/plain');
-        mockContentType = 'text/plain';
+        // mockContentType = 'text/plain'; // Removed: not used
 
         mockResponseBody = new ReadableStream({
           async pull(controller) {
@@ -107,7 +106,7 @@ describe('Default Adapter Progress Handling', () => {
               controller.close();
             }
           },
-          cancel(reason) {
+          cancel(_reason) { // Renamed reason to _reason
             // Stream cancelled
           }
         });

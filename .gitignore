@@ -11,4 +11,7 @@ src/dist
 
 # coverage
 coverage
+# Demo runtime folders
+src/demo/downloaded/
+src/demo/uploaded-files/
 

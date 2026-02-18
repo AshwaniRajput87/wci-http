@@ -1,10 +1,4 @@
-import { WciHttpConfig } from '../types/http.types';
-
-export type ProgressEvent = {
-  loaded: number;
-  total?: number;
-  progress?: number; // 0-1
-};
+import { ProgressEvent } from '../types/http.types';
 
 type ProgressCallback = (progressEvent: ProgressEvent) => void;
 
@@ -34,7 +28,6 @@ export async function createProgressStream(
     // FormData needs to be serialized to a Blob to get its size and stream it.
     // This requires a bit of a workaround to get the content-type with boundary.
     // We'll create a dummy request to let the browser serialize it, then extract.
-    const dummyHeaders = new Headers();
     const dummyRequest = new Request('http://localhost', { method: 'POST', body: body });
     // This is a bit of a hack: Request.headers will be populated with the correct Content-Type
     // when a FormData body is provided, even if the URL is empty.
@@ -65,7 +58,7 @@ export async function createProgressStream(
     try {
       processedBody = new TextEncoder().encode(String(body));
       total = processedBody.byteLength;
-    } catch (e) {
+    } catch (_e) { // eslint-disable-line @typescript-eslint/no-unused-vars
       console.warn('createProgressStream: Could not process unknown body type for upload progress', body);
       // Fallback: return original body as a stream without progress
       return {
@@ -84,7 +77,6 @@ export async function createProgressStream(
   }
 
   let loaded = 0;
-  let offset = 0;
 
   const reader = new Blob([processedBody]).stream().getReader();
 

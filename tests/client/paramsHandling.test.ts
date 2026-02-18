@@ -6,8 +6,7 @@ import { buildURL } from '../../src/utils/buildURL'; // Import buildURL
 import { defaultParamsSerializer } from '../../src/utils/paramsSerializer'; // Import defaultParamsSerializer
 
 // Mock the dispatchRequest module to dynamically build the URL
-vi.mock('../../src/client/dispatchRequest', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/client/dispatchRequest')>();
+vi.mock('../../src/client/dispatchRequest', async (_importOriginal) => {
   return {
     dispatchRequest: vi.fn(async (config: WciHttpConfig): Promise<HttpResponse<any>> => {
       const finalUrl = buildURL(

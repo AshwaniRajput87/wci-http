@@ -1,4 +1,3 @@
-import type { HttpRequest } from "../types/http.types";
 import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 import { findHeader } from "./mergeHeadersUtils";
 
@@ -21,8 +20,13 @@ const isFormData = (value: unknown): value is FormData => {
   return isTaggedFormData;
 };
 
+type BodySerializableRequest = {
+  body?: unknown;
+  headers?: Record<string, any>;
+};
+
 export const serializeRequestBody = (
-  request: HttpRequest,
+  request: BodySerializableRequest,
 ): SerializedBodyResult => {
   const { body, headers = {} } = request;
 
@@ -32,8 +36,14 @@ export const serializeRequestBody = (
 
   const contentType = findHeader("Content-Type", headers);
 
-  // For FormData, let the browser set the Content-Type header. Return empty headers.
+  // For FormData, let the underlying adapter set the Content-Type header with the correct boundary.
+  // We return `undefined` for headers here to ensure `dispatchRequest` does not overwrite
+  // any auto-generated 'Content-Type' header that the adapter might add.
   if (isFormData(body)) {
+    // Returning an empty object keeps existing headers intact (e.g., user-provided
+    // Content-Type) while signalling to callers that the serializer itself did not
+    // add or modify headers. Using `{}` instead of `undefined` avoids consumers
+    // interpreting this as "remove headers" which the tests expect.
     return { body, headers: {} };
   }
 

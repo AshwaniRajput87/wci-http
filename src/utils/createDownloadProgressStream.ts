@@ -1,4 +1,4 @@
-import { WciHttpConfig, ProgressEvent } from '../types/http.types';
+import { ProgressEvent } from '../types/http.types';
 
 type ProgressCallback = (progressEvent: ProgressEvent) => void;
 

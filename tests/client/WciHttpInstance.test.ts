@@ -59,7 +59,7 @@ describe('WciHttp create', () => {
       headers: { 'X-Instance': 'true' },
     })
 
-    await instance.request({ headers: { 'X-Request': 'true' } })
+    await instance.request({ url: '/demo', headers: { 'X-Request': 'true' } })
 
     expect(dispatchRequest).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
+    "demo:retry": "tsx src/demo/retry-demo.ts",
     "license": "MIT"
   },
   "devDependencies": {
@@ -25,9 +26,9 @@
     "@typescript-eslint/eslint-plugin": "^8.50.1",
     "@typescript-eslint/parser": "^8.50.1",
     "@vitest/coverage-v8": "^4.0.16",
-    "fastify": "^4.28.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
+    "fastify": "^4.28.1",
     "prettier": "^3.7.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

@@ -1,5 +1,4 @@
 import { httpClient } from "../client/httpClient";
-import { CONTENT_TYPES } from "../constants/protocol/contentTypes";
 
 const API_BASE = "https://httpbin.org";
 

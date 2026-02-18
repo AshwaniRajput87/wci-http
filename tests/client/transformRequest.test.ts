@@ -104,7 +104,7 @@ describe("transformRequest", () => {
       method: "post",
       data: { a: "1", b: "2" },
       fetcher: mockFetch,
-      transformRequest: (data: any) => {
+      transformRequest: (_data: any) => {
         const params = new URLSearchParams();
         params.set("a", "1");
         params.set("b", "2");
