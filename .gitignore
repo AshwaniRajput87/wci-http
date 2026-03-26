@@ -1,0 +1,17 @@
+# dependencies
+node_modules
+
+# build outputs
+build
+dist
+src/dist
+
+# environment
+.env
+
+# coverage
+coverage
+# Demo runtime folders
+src/demo/downloaded/
+src/demo/uploaded-files/
+

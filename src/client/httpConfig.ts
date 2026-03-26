@@ -1,0 +1,17 @@
+import { WciHttpConfig } from '../types';
+
+export const DEFAULT_WCI_HTTP_CONFIG: WciHttpConfig = {
+    responseType: 'json',
+    headers: {},
+    timeout: 0, // 0 means no timeout
+    method: 'get',
+    withCredentials: false,
+    logging: {
+        level: 'none',
+        logRequestHeaders: false,
+        logResponseHeaders: false,
+    },
+    requestInterceptors: [],
+    responseInterceptors: [],
+    validateStatus: (status: number) => status >= 200 && status < 300,
+};

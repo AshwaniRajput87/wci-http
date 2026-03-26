@@ -1,0 +1,3 @@
+Hello, this is a plain text file.
+It contains multiple lines of text for demonstration.
+End of file.

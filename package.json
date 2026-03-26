@@ -1,0 +1,44 @@
+{
+  "type": "module",
+  "name": "wci-http",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "module": "build/index.mjs",
+  "types": "build/index.d.ts",
+  "repository": "https://github.com/AshwaniRajput87/wci-http.git",
+  "author": "Ayushi Chouhan <ayushi.chouhan@example.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --out-dir build",
+    "dev": "tsup src/index.ts --watch",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "coverage": "vitest run --coverage",
+    "demo:retry": "tsx src/demo/retry-demo.ts",
+    "license": "MIT"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@fastify/multipart": "^8.3.1",
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "@vitest/coverage-v8": "^4.0.16",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "fastify": "^4.28.1",
+    "prettier": "^3.7.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.1",
+    "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "yarn": "^1.22.22"
+  }
+}
